@@ -1,0 +1,63 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JavaBinary", "JavaBinary\JavaBinary.csproj", "{E9AD82D2-F50F-47D0-AF81-98FAE604D910}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CilToJava", "CilToJava\CilToJava.csproj", "{C2990A34-7671-42D0-A989-138AD9D08B2C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910} = {E9AD82D2-F50F-47D0-AF81-98FAE604D910}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Main", "Main\Main.csproj", "{D7598537-16B1-4DB7-903A-4D553414F390}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C2990A34-7671-42D0-A989-138AD9D08B2C} = {C2990A34-7671-42D0-A989-138AD9D08B2C}
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910} = {E9AD82D2-F50F-47D0-AF81-98FAE604D910}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Baselib", "Baselib\Baselib.csproj", "{085399FC-1934-43A4-A9C8-EC3137BAEA8E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D7598537-16B1-4DB7-903A-4D553414F390} = {D7598537-16B1-4DB7-903A-4D553414F390}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D7598537-16B1-4DB7-903A-4D553414F390} = {D7598537-16B1-4DB7-903A-4D553414F390}
+		{085399FC-1934-43A4-A9C8-EC3137BAEA8E} = {085399FC-1934-43A4-A9C8-EC3137BAEA8E}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9AD82D2-F50F-47D0-AF81-98FAE604D910}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2990A34-7671-42D0-A989-138AD9D08B2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2990A34-7671-42D0-A989-138AD9D08B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2990A34-7671-42D0-A989-138AD9D08B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2990A34-7671-42D0-A989-138AD9D08B2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7598537-16B1-4DB7-903A-4D553414F390}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7598537-16B1-4DB7-903A-4D553414F390}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7598537-16B1-4DB7-903A-4D553414F390}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7598537-16B1-4DB7-903A-4D553414F390}.Release|Any CPU.Build.0 = Release|Any CPU
+		{085399FC-1934-43A4-A9C8-EC3137BAEA8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{085399FC-1934-43A4-A9C8-EC3137BAEA8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{085399FC-1934-43A4-A9C8-EC3137BAEA8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{085399FC-1934-43A4-A9C8-EC3137BAEA8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6D8879B6-F767-4794-B022-431625E22AC4}
+	EndGlobalSection
+EndGlobal

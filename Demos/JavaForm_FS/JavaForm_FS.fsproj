@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{B45D0FD9-E0D8-4D65-8ED2-886E8FC177CE}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>SpaceFlint.Demos</RootNamespace>
+    <AssemblyName>Demo_JavaForm_FS</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <ProjectLanguage>FSharp</ProjectLanguage>
+  </PropertyGroup>
+  <Import Project="..\..\Solution.project" />
+  <ItemGroup>
+    <Content Include="packages.config" />
+    <Reference Include="FSharp.Core">
+      <HintPath>..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <ProjectReference Include="..\JavaForm_CS\JavaForm_CS.csproj">
+      <Project>{67A50769-550D-4C76-8965-73D73E76A173}</Project>
+      <Name>Main</Name>
+    </ProjectReference>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="PresentationFramework" />
+    <None Include="..\Common\App.config" />
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="..\Common\Points.fs" />
+    <Compile Include="Main.fs" />
+  </ItemGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+  </PropertyGroup>
+  <Target Name="ExportToJar" AfterTargets="AfterBuild" Condition=" '$(_AssemblyTimestampBeforeCompile)' != '$(_AssemblyTimestampAfterCompile)'" Inputs="$(OutputPath)$(AssemblyName).exe" Outputs="$(OutputPath)$(AssemblyName).jar">
+    <Delete Files="$(ObjDir)$(AssemblyName).jar" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(OutputPath)FSharp.Core.dll&quot;      &quot;$(OutputPath)$(AssemblyName).jar&quot;" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(OutputPath)Demo_JavaForm_CS.exe&quot; &quot;$(OutputPath)$(AssemblyName).jar&quot;" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(OutputPath)$(AssemblyName).exe&quot;  &quot;$(OutputPath)$(AssemblyName).jar&quot;" />
+  </Target>
+  <Target Name="RunDemo" DependsOnTargets="Build;AfterBuild">
+    <Exec Command="&quot;$(JAVA_HOME)/bin/java&quot; -Xdiag -Xverify:all -classpath &quot;$(OutputPath)$(AssemblyName).jar;$(ObjDir)baselib.jar&quot; spaceflint.demos.JavaForm_FS" />
+  </Target>
+</Project>

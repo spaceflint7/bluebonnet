@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{085399FC-1934-43A4-A9C8-EC3137BAEA8E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Baselib</RootNamespace>
+    <AssemblyName>Baselib</AssemblyName>
+  </PropertyGroup>
+  <Import Project="..\Solution.project" />
+  <ItemGroup>
+    <ProjectReference Include="..\Main\Main.csproj">
+      <Project>{D7598537-16B1-4DB7-903A-4D553414F390}</Project>
+      <Name>Main</Name>
+    </ProjectReference>
+    <Reference Include="$(ObjDir)Javalib.dll" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\**\*.cs" />
+    <CustomAdditionalCompileInputs Include="*.filter" />
+    <Filter Include="*.filter" />
+  </ItemGroup>
+  <!-- build Javalib.dll from the Java runtime library -->
+  <Target Name="CheckJavaHome" BeforeTargets="BuildJavalib">
+    <Error Condition=" '$(JAVA_HOME)' == ''" Text="JAVA_HOME environment variable is not set." />
+  </Target>
+  <Target Name="BuildJavalib" BeforeTargets="ResolveAssemblyReferences" Inputs="$(ObjDir)Javalib.dll" Outputs="$(ObjDir)Javalib.dll">
+    <Message Text="JAVA_HOME = $(JAVA_HOME)" />
+    <Error Condition=" '$(JAVA_HOME)' == ''" Text="JAVA_HOME environment variable is not set." />
+    <Error Condition=" !Exists('$(JAVA_HOME)\jre\lib\rt.jar')" Text="Could not find file $(JAVA_HOME)\jre\lib\rt.jar -- check JAVA_HOME environment variable." />
+    <Delete Files="$(ObjDir)Javalib.dll" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(JAVA_HOME)/jre/lib/rt.jar&quot; &quot;$(ObjDir)Javalib.dll&quot;" />
+  </Target>
+  <!-- middle of the build; compile Baselib.dll here -->
+  <!-- run our converter on Baselib.dll to produce Baselib.jar -->
+  <PropertyGroup Condition=" '$(InvokedForMerge)' == ''">
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+  </PropertyGroup>
+  <Target Name="ExportToJar" AfterTargets="AfterBuild"
+          Condition=" '$(_AssemblyTimestampBeforeCompile)' != '$(_AssemblyTimestampAfterCompile)'"
+          Inputs="$(OutputPath)$(AssemblyName).dll" Outputs="$(ObjDir)$(AssemblyName).jar">
+    <Delete Files="$(ObjDir)$(AssemblyName).jar" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(OutputPath)$(AssemblyName).dll&quot; &quot;$(ObjDir)$(AssemblyName).jar&quot;" />
+    <!-- run ourselves recursively to handle each filter file with the ExportToJar2 target -->
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="FilterFile=%(Filter.FileName)" Targets="ExportToJar2">
+    </MSBuild>
+  </Target>
+  <!-- run our converter on types from a system DLL and insert into Baselib.jar -->
+  <Target Name="ExportToJar2">
+    <Error Condition=" !Exists('$(FilterFile).filter')" Text="Filter file not found - $(FilterFile).filter." />
+    <ReadLinesFromFile File="$(FilterFile).filter">
+      <Output TaskParameter="Lines" ItemName="FilterItem" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <FilterProp>%22:@(FilterItem, '%22 %22:')%22</FilterProp>
+    </PropertyGroup>
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;**/$(FilterFile).dll&quot; &quot;$(ObjDir)$(AssemblyName).jar&quot; $(FilterProp)" />
+  </Target>
+  <Target Name="CleanBaselibInSolutionOutputDirectory" AfterTargets="Clean">
+    <Delete Files="$(ObjDir)Javalib.dll" />
+    <Delete Files="$(ObjDir)$(AssemblyName).dll" />
+    <Delete Files="$(ObjDir)$(AssemblyName).pdb" />
+    <Delete Files="$(ObjDir)$(AssemblyName).jar" />
+  </Target>
+</Project>

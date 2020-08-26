@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{12639975-A892-4D11-A050-40520E88339B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SpaceFlint.Demos</RootNamespace>
+    <AssemblyName>Demo_Android_CS</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- Android SDK path -->
+    <AndroidHome Condition="'$(ANDROID_HOME)' != ''">$(ANDROID_HOME)</AndroidHome>
+    <AndroidHome Condition="'$(ANDROID_SDK_ROOT)' != ''">$(ANDROID_SDK_ROOT)</AndroidHome>
+    <AndroidJar>$(AndroidHome)/platforms/android-28/android.jar</AndroidJar>
+    <AndroidBin>$(AndroidHome)/build-tools/30.0.2/</AndroidBin>
+  </PropertyGroup>
+  <Import Project="..\..\Solution.project" />
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="$(ObjDir)Android.dll" />
+    <None Include="..\Common\App.config" />
+    <Compile Include="..\Common\HAL.cs" />
+    <Compile Include="..\Common\Points.cs" />
+    <Compile Include="MainActivity.cs" />
+    <AndroidManifest Include="AndroidManifest.xml" />
+    <MyKeystore Include="my.keystore" />
+  </ItemGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+  </PropertyGroup>
+  <!-- import android.jar into android.dll -->
+  <Target Name="ImportAndroid" BeforeTargets="ResolveAssemblyReferences"
+          Inputs="$(AndroidJar)" Outputs="$(ObjDir)android.dll">
+    <Error Condition="'$(AndroidHome)' == ''"
+           Text="Please specify ANDROID_HOME or ANDROID_SDK_ROOT."/>
+    <Error Condition="(! Exists($(AndroidJar)))"
+           Text="Cannot find $(AndroidJar) file."/>
+    <Delete Files="$(ObjDir)android.dll" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(AndroidJar)&quot; &quot;$(ObjDir)android.dll&quot;" />
+  </Target>
+  <Target Name="ExportDalvik" AfterTargets="AfterBuild"
+          Condition=" '$(_AssemblyTimestampBeforeCompile)' != '$(_AssemblyTimestampAfterCompile)'">
+    <Delete Files="$(OutputPath)$(AssemblyName).apk" />
+    <Delete Files="$(OutputPath)$(AssemblyName).unaligned.apk" />
+    <Delete Files="$(OutputPath)$(AssemblyName).jar" />
+    <Delete Files="$(OutputPath)classes.dex" />
+    <Exec Command="&quot;$(ObjDir)Bluebonnet&quot; &quot;$(OutputPath)$(AssemblyName).dll&quot; &quot;$(OutputPath)$(AssemblyName).jar&quot;" />
+    <Exec Command="&quot;$(AndroidBin)d8&quot; --release --lib &quot;$(AndroidJar)&quot; &quot;$(OutputPath)$(AssemblyName).jar&quot; &quot;$(ObjDir)/Baselib.jar&quot; --output &quot;$(OutputPath.TrimEnd('\').TrimEnd('/'))&quot;" />
+    <Exec Command="&quot;$(AndroidBin)aapt&quot; package -f -F &quot;$(OutputPath)$(AssemblyName).unaligned.apk&quot; -M &quot;@(AndroidManifest)&quot; -I &quot;$(AndroidJar)&quot;" />
+    <Exec Command="&quot;$(AndroidBin)aapt&quot; add &quot;$(OutputPath)$(AssemblyName).unaligned.apk&quot; classes.dex" WorkingDirectory="$(OutputPath)" />
+    <Exec Command="&quot;$(AndroidBin)zipalign&quot; -f 4 &quot;$(OutputPath)$(AssemblyName).unaligned.apk&quot; &quot;$(OutputPath)$(AssemblyName).apk&quot;" />
+    <Exec Command="&quot;$(AndroidBin)apksigner&quot; sign --ks &quot;@(MyKeystore)&quot; --ks-pass &quot;pass:123456&quot; &quot;$(OutputPath)$(AssemblyName).apk&quot;" />
+  </Target>
+  <Target Name="RunDemo" DependsOnTargets="Build;AfterBuild">
+    <Message Importance="High" Text="---------------------------------------------------------------" />
+    <Message Importance="High" Text="= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =" />
+    <Message Importance="High" Text="Install to Android: &quot;$(OutputPath)$(AssemblyName).apk&quot;" />
+    <Message Importance="High" Text="= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =" />
+    <Message Importance="High" Text="---------------------------------------------------------------" />
+  </Target>
+</Project>

@@ -1,0 +1,64 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+
+    <SolutionDir Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)</SolutionDir>
+    <SolutionDir Condition="'$(SolutionDir)' == '*Undefined*'">$(MSBuildThisFileDirectory)</SolutionDir>
+
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkProfile></TargetFrameworkProfile>
+    <LangVersion>8.0</LangVersion>
+    <Prefer32Bit>false</Prefer32Bit>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <ErrorReport>prompt</ErrorReport>
+
+    <!-- skip temporary directory when building -->
+    <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
+
+    <ObjDir>$(MSBuildThisFileDirectory).obj\</ObjDir>
+    <OutputPath>$(ObjDir)$(AssemblyName)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>$(ObjDir)$(AssemblyName)\$(Configuration)\</IntermediateOutputPath>
+
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(ProjectLanguage)' == 'FSharp' ">
+    <LangVersion>4.7</LangVersion>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <Target Name="CleanProjectInSolutionOutputDirectory" AfterTargets="Clean">
+    <RemoveDir Directories="$(ObjDir)$(AssemblyName)\$(Configuration)" />
+    <RemoveDir Directories="$(ObjDir)$(AssemblyName)" />
+  </Target>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"
+          Condition=" '$(ProjectLanguage)' == 'CSharp' or '$(ProjectLanguage)' == '' " />
+  <Import Project="$(FSHARPINSTALLDIR)\Microsoft.FSharp.targets"
+          Condition=" '$(ProjectLanguage)' == 'FSharp' and '$(FSHARPINSTALLDIR)' != '' " />
+  <Import Project="$(FSharpCompilerPath)\Microsoft.FSharp.targets"
+          Condition=" '$(ProjectLanguage)' == 'FSharp' and '$(FSHARPINSTALLDIR)' == '' and $(FSharpCompilerPath) != '' " />
+
+</Project>

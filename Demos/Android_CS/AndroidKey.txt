@@ -1,0 +1,28 @@
+
+"$JAVA_HOME/bin/keytool" -genkey -v -keystore my.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias Bluebonnet
+Enter keystore password: 123456
+Re-enter new password: 123456
+What is your first and last name?
+  [Unknown]:  Bluebonnet
+What is the name of your organizational unit?
+  [Unknown]:  Bluebonnet
+What is the name of your organization?
+  [Unknown]:  Bluebonnet
+What is the name of your City or Locality?
+  [Unknown]:  Bluebonnet
+What is the name of your State or Province?
+  [Unknown]:  Bluebonnet
+What is the two-letter country code for this unit?
+  [Unknown]:  BL
+Is CN=Bluebonnet, OU=Bluebonnet, O=Bluebonnet, L=Bluebonnet, ST=Bluebonnet, C=BL correct?
+  [no]:  yes
+
+Generating 2,048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 10,000 days
+        for: CN=Bluebonnet, OU=Bluebonnet, O=Bluebonnet, L=Bluebonnet, ST=Bluebonnet, C=BL
+Enter key password for <Bluebonnet>
+        (RETURN if same as keystore password):
+[Storing my.keystore]
+
+Warning:
+The JKS keystore uses a proprietary format. It is recommended to migrate to PKCS12 which is an industry standard format using "keytool
+-importkeystore -srckeystore my.keystore -destkeystore my.keystore -deststoretype pkcs12".
