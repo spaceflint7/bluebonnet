@@ -331,6 +331,13 @@ namespace SpaceFlint.CilToJava
                     if (      (fromMethod.IsPublic || fromMethod.HasOverrides)
                          && ! (fromMethod.IsStatic || fromMethod.IsConstructor))
                     {
+                        if (fromType.IsInterface && fromMethod.HasBody)
+                        {
+                            // skip default interface methods, they are not needed
+                            // in the context of resolving interface implementations
+                            continue;
+                        }
+
                         var genericMark = CilMain.GenericStack.Mark();
                         var inputMethod = CilMain.GenericStack.EnterMethod(fromMethod);
 

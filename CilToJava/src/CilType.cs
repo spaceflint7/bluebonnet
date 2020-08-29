@@ -179,6 +179,14 @@ namespace SpaceFlint.CilToJava
                         Flags &= ~VALUE;
                         return;
                     }
+                    /*
+                    if (fromType.Name == "RuntimeFieldHandle")
+                    {
+                        CopyFrom(ReflectFieldType);
+                        JavaName = ClassName;
+                        Flags &= ~VALUE;
+                        return;
+                    }
                     if (fromType.Name == "RuntimeMethodHandle")
                     {
                         CopyFrom(ReflectMethodType);
@@ -186,6 +194,7 @@ namespace SpaceFlint.CilToJava
                         Flags &= ~VALUE;
                         return;
                     }
+                    */
                 }
             }
             else
@@ -659,6 +668,8 @@ namespace SpaceFlint.CilToJava
         internal static readonly JavaType SystemUtilType = new JavaType(0, 0, "system.Util");
         internal static readonly JavaType SystemValueType = new JavaType(0, 0, "system.ValueType");
 
+        /*internal static readonly CilType ReflectFieldType =
+                                            CilType.From(new JavaType(0, 0, "java.lang.reflect.Field"));*/
         internal static readonly CilType ReflectMethodType =
                                             CilType.From(new JavaType(0, 0, "java.lang.reflect.Method"));
     }

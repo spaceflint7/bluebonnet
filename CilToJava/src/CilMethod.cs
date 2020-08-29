@@ -831,12 +831,8 @@ namespace SpaceFlint.CilToJava
         internal static readonly JavaMethodRef ValueClear =
                                     new JavaMethod("system-ValueMethod-Clear", JavaType.VoidType);
 
-        internal static readonly JavaMethodRef ValueCopyFrom =
-                                    new JavaMethod("system-ValueMethod-CopyFrom",
-                                                   JavaType.VoidType, CilType.SystemValueType);
-
-        internal static readonly JavaMethodRef ValueCopyInto =
-                                    new JavaMethod("system-ValueMethod-CopyInto",
+        internal static readonly JavaMethodRef ValueCopyTo =
+                                    new JavaMethod("system-ValueMethod-CopyTo",
                                                    JavaType.VoidType, CilType.SystemValueType);
 
         internal static readonly JavaMethodRef ValueClone =

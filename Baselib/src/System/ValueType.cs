@@ -52,7 +52,6 @@ namespace system
 
         public override int GetHashCode()
         {
-
             var fields = ((java.lang.Object) (object) this).getClass().getDeclaredFields();
             int numFields = fields.Length;
 
@@ -78,8 +77,7 @@ namespace system
 
 
         void ValueMethod.Clear() {}
-        void ValueMethod.CopyFrom(ValueType from) {}
-        void ValueMethod.CopyInto(ValueType into) {}
+        void ValueMethod.CopyTo(ValueType other) {}
         ValueType ValueMethod.Clone() => null;
     }
 
@@ -89,8 +87,7 @@ namespace system
     interface ValueMethod
     {
         void Clear();
-        void CopyFrom(ValueType from);
-        void CopyInto(ValueType into);
+        void CopyTo(ValueType other);
         ValueType Clone();
     }
 

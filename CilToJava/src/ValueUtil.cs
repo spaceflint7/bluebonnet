@@ -85,8 +85,7 @@ namespace SpaceFlint.CilToJava
         static void CreateValueMethods(JavaClass valueClass, CilType fromType)
         {
             CreateValueClearMethod(valueClass, fromType);
-            CreateValueCopyMethod(valueClass, fromType, CilMethod.ValueCopyFrom, 1, 0);
-            CreateValueCopyMethod(valueClass, fromType, CilMethod.ValueCopyInto, 0, 1);
+            CreateValueCopyToMethod(valueClass, fromType);
             CreateValueCloneMethod(valueClass, fromType);
 
             //
@@ -108,7 +107,8 @@ namespace SpaceFlint.CilToJava
                         {
                             code.NewInstruction(0x19 /* aload */, null, (int) 0);
                             code.NewInstruction(0xB4 /* getfield */, fromType, fld);
-                            code.NewInstruction(0xB6 /* invokevirtual */, fldType, CilMethod.ValueClear);
+                            code.NewInstruction(0xB6 /* invokevirtual */,
+                                                fldType, CilMethod.ValueClear);
 
                         }
                         else
@@ -124,15 +124,14 @@ namespace SpaceFlint.CilToJava
             }
 
             //
-            // builds a system-ValueMethod-CopyXxxx() method, which takes a value
+            // builds a system-ValueMethod-CopyTo() method, which takes a value
             // type object parameter, along with a 'this' object reference, and
-            // copies each field from one object to the other
+            // copies each field from 'this' object to the other object
             //
 
-            void CreateValueCopyMethod(JavaClass valueClass, CilType fromType,
-                                       JavaMethodRef model, int localFrom, int localInto)
+            void CreateValueCopyToMethod(JavaClass valueClass, CilType fromType)
             {
-                var code = CilMain.CreateHelperMethod(valueClass, model, 2, 2);
+                var code = CilMain.CreateHelperMethod(valueClass, CilMethod.ValueCopyTo, 2, 2);
                 bool atLeastOneField = false;
 
                 if (valueClass.Fields != null && valueClass.Fields.Count != 0)
@@ -157,13 +156,14 @@ namespace SpaceFlint.CilToJava
                             code.NewInstruction(0xB4 /* getfield */, fromType, fld);
                             code.NewInstruction(0x19 /* aload */, null, (int) 1);
                             code.NewInstruction(0xB4 /* getfield */, fromType, fld);
-                            code.NewInstruction(0xB6 /* invokevirtual */, fldType, model);
+                            code.NewInstruction(0xB6 /* invokevirtual */,
+                                                fldType, CilMethod.ValueCopyTo);
 
                         }
                         else
                         {
-                            code.NewInstruction(0x19 /* aload */, null, localInto);
-                            code.NewInstruction(0x19 /* aload */, null, localFrom);
+                            code.NewInstruction(0x19 /* aload */, null, (int) 1);
+                            code.NewInstruction(0x19 /* aload */, null, (int) 0);
                             code.NewInstruction(0xB4 /* getfield */, fromType, fld);
                             code.NewInstruction(0xB5 /* putfield */, fromType, fld);
                         }
@@ -229,6 +229,31 @@ namespace SpaceFlint.CilToJava
 
             if (isFlags)
                 enumClass.AddInterface("system.EnumFlags");
+
+            //
+            // create getter and setter
+            //
+
+            var theClass = new JavaType(0, 0, enumClass.Name);
+            var theField = enumClass.Fields[0];
+
+            var code = CilMain.CreateHelperMethod(enumClass,
+                                    new JavaMethodRef("Get", JavaType.LongType), 1, 2);
+            code.NewInstruction(0x19 /* aload */, null, (int) 0);
+            code.NewInstruction(0xB4 /* getfield */, theClass, theField);
+            if (enumType.Category == 1)
+                code.NewInstruction(0x85 /* i2l */, null, null);
+            code.NewInstruction(code.Method.ReturnType.ReturnOpcode, null, null);
+
+            code = CilMain.CreateHelperMethod(enumClass,
+                                    new JavaMethodRef("Set", JavaType.VoidType), 3, 3);
+            code.Method.Parameters.Add(new JavaFieldRef("", JavaType.LongType));
+            code.NewInstruction(0x19 /* aload */, null, (int) 0);
+            code.NewInstruction(0x16 /* lload */, null, (int) 1);
+            if (enumType.Category == 1)
+                code.NewInstruction(0x88 /* l2i */, null, null);
+            code.NewInstruction(0xB5 /* putfield */, theClass, theField);
+            code.NewInstruction(code.Method.ReturnType.ReturnOpcode, null, null);
         }
 
 

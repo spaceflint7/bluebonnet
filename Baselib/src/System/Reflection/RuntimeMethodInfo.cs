@@ -356,7 +356,7 @@ namespace system.reflection
 
         public override string Name => strippedName;
 
-        public override RuntimeMethodHandle MethodHandle
+        public override System.RuntimeMethodHandle MethodHandle
             => throw new PlatformNotSupportedException();
 
         public override ParameterInfo[] GetParameters()

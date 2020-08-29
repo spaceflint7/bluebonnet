@@ -406,6 +406,26 @@ namespace SpaceFlint.CilToJava
 
                 return true;
             }
+
+            if (    callClass.JavaName == null
+                 && callClass.Equals(JavaType.ClassType)
+                 && callMethod.Name == "GetRuntimeType")
+            {
+                // convert virtual call to RuntimeTypeHandle.GetRuntimeType
+                // to a static call to system.RuntimeType
+
+                code.NewInstruction(0xB8 /* invokestatic */,
+                                    CilType.SystemRuntimeTypeType,
+                                    new JavaMethodRef(
+                                            callMethod.Name, callMethod.ReturnType,
+                                            JavaType.ObjectType));
+
+                ClearMethodArguments(callMethod, false);
+                PushMethodReturnType(callMethod);
+
+                return true;
+            }
+
             return false;
         }
 

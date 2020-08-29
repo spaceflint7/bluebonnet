@@ -489,9 +489,9 @@ public class CilTool
 
             AddSearchDirectory(Directory.GetCurrentDirectory());
 
-            /*MainModuleFileName =
+            MainModuleFileName =
                     System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-            AddSearchDirectory(Path.GetDirectoryName(MainModuleFileName));*/
+            AddSearchDirectory(Path.GetDirectoryName(MainModuleFileName));
 
             foreach (var dir in Environment.GetEnvironmentVariable("PATH")
                                           ?.Split(Path.PathSeparator))
