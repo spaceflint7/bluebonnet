@@ -27,7 +27,7 @@ namespace system
             }
             else if (fromObj is ValueType fromValue)
             {
-                ((ValueMethod) fromValue).CopyInto((ValueType) toObj);
+                ((ValueMethod) fromValue).CopyTo((ValueType) toObj);
             }
             else if (fromObj is java.lang.Comparable)
             {

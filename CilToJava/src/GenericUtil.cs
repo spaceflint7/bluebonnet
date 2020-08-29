@@ -704,8 +704,9 @@ namespace SpaceFlint.CilToJava
             }
             else
             {
-                var method = swap ? CilMethod.ValueCopyFrom : CilMethod.ValueCopyInto;
-                CilMethod.ValueMethod(method, code);
+                if (swap)
+                    code.NewInstruction(0x5F /* swap */, null, null);
+                CilMethod.ValueMethod(CilMethod.ValueCopyTo, code);
             }
         }
 

@@ -347,7 +347,8 @@ namespace SpaceFlint.CilToJava
                 code.NewInstruction(elemType.LoadOpcode, null, localIndex);
                 locals.FreeTempIndex(localIndex);
 
-                CilMethod.ValueMethod(CilMethod.ValueCopyFrom, code);
+                // we can pass any type that is not a generic parameter
+                GenericUtil.ValueCopy(CilType.SystemTypeType, code, true);
             }
             else if (arrayType.ArrayRank > 1)
             {

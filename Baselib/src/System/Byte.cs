@@ -51,8 +51,7 @@ namespace system
 
 
         void ValueMethod.Clear() => Set(0);
-        void ValueMethod.CopyFrom(ValueType from) => Set(((SByte) from).Get());
-        void ValueMethod.CopyInto(ValueType into) => ((SByte) into).Set(Get());
+        void ValueMethod.CopyTo(ValueType into) => ((SByte) into).Set(Get());
         ValueType ValueMethod.Clone() => Box(Get());
 
 

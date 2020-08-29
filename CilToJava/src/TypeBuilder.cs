@@ -52,7 +52,7 @@ namespace SpaceFlint.CilToJava
             else if (myType.IsEnum)
             {
                 ValueUtil.MakeEnumClass(jclass, myType,
-                                        cilType.HasCustomAttribute("System.FlagsAttribute"));
+                                cilType.HasCustomAttribute("System.FlagsAttribute", true));
             }
 
             else if (myType.IsDelegate)

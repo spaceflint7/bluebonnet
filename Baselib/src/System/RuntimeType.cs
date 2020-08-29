@@ -1488,7 +1488,7 @@ namespace system
 
         public override FieldInfo[] GetFields(BindingFlags bindingAttr)
         {
-            throw new PlatformNotSupportedException();
+            return system.reflection.RuntimeFieldInfo.GetFields(bindingAttr, this);
         }
 
         public override MemberInfo[] GetMembers(BindingFlags bindingAttr)
@@ -1532,7 +1532,6 @@ namespace system
         public virtual Type[] GetGenericParameterConstraints()
 
         public virtual Array GetEnumValues()
-        public virtual Type GetEnumUnderlyingType()
 
         internal virtual string FormatTypeName(bool serialization)
         public virtual InterfaceMapping GetInterfaceMap(Type interfaceType)
@@ -1564,6 +1563,7 @@ namespace system
         public virtual bool IsInstanceOfType(Object o)
         public virtual bool IsEquivalentTo(Type other)
 
+        public virtual Type GetEnumUnderlyingType()
         public virtual string[] GetEnumNames()
         public virtual bool IsEnumDefined(object value)
         public virtual string GetEnumName(object value)

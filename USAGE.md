@@ -23,7 +23,7 @@ If `input_file` is a .NET assembly, then the output is a Java archive containing
 If the output is an existing archive, it will be updated, not overwritten.  The output can alternatively be
 (1) a directory, in which case unzipped classes will be generated in that directory; or (2) a Java `.class` file, if the (possibly filtered) input can translate to a single class.
 
-If the input assembly references other assemblies, they are searched in (1) the directory containing the input assembly; (2) the current directory; (4) each directory listed in the `PATH` environment variable; (5) the directories within `%PROGRAMFILES%\DotNet\Shared\Microsoft.NETCore.App` (with later .NET Core versions taking precedence over earlier ones).
+If the input assembly references other assemblies, they are searched in (1) the directory containing the input assembly; (2) the current directory; (3) the directory containing the Bluebonnet executable (for `Javalib.dll`); (4) each directory listed in the `PATH` environment variable; (5) the directories within `%PROGRAMFILES%\DotNet\Shared\Microsoft.NETCore.App` (with later .NET Core versions taking precedence over earlier ones).
 
 # Java Interoperability
 
@@ -50,48 +50,48 @@ In this example, `java.lang.Thread.UncaughtExceptionHandler` is the functional i
 
 Here are some known differences, deficiencies and incompatibilities of the Bluebonnet .NET implementation, compared to a proper .NET implementation, in no particular order.
 
-- For desktop applications, the Java entry point 'main' (lowercase) must be defined as public static void main(string[] args).
+- For desktop applications, the Java entry point `main` (lowercase) must be defined as `public static void main(string[] args)`.
 
 - Namespace names are translated to lowercase package names, as required by Java.  Reflection capitalizes the first letter in each namespace component.
 
 - Value type objects are implemented as normal JVM class objects, and are not copied into the operand stack by value.  Instead, a properly translated method duplicates any non-ref value type arguments that it modifies.
 
-- Delegate Method property is not supported, and throws MemberAccessException.
+- `Delegate.Method` property is not supported, and throws `MemberAccessException`.
 
-- Reflection information for generic types depends on the existence of the Signature attribute in java class files.
+- Reflection information for generic types depends on the existence of the `Signature` attribute in java class files.
 
-- BeforeFieldInit is not honored; the static initializer for a class will be called at the discretion of the JVM.  if it is a generic class, the static initializer is called when the generic type is first referenced.
+- `BeforeFieldInit` is not honored; the static initializer for a class will be called at the discretion of the JVM.  if it is a generic class, the static initializer is called when the generic type is first referenced.
 
 - The type system is weaker than .NET when it comes to generic types, and in some casts and assignments are permitted between generic objects that differ only in their type arguments.
 
-- ConditionalWeakTable is an ephemeron table where (possibly indirect) references from values to keys in the same table are treated as weak references.  The JVM does not provide such a mechanism.
+- `ConditionalWeakTable` is an ephemeron table in .NET, where (possibly indirect) references from values to keys in the same table are treated as weak references.  The JVM does not provide such a mechanism.
 
-- Limited pointer indirection is permitted, but pointer arithmetic is prohibited.  Stackalloc buffers are permitted, but must be allocated and accessed using the same type, and may only be assigned to a System.Span of the same type.
+- Limited pointer indirection is permitted, but pointer arithmetic is prohibited.  `stackalloc` buffers are permitted, but must be allocated and accessed using the same type, and may only be assigned to a `System.Span` of the same type.
 
-- Exceptions originating from Java (JVM or library) are translated to equivalent CLR exception types only when caught.  Additionally, System.Exception.ToString prints a stack trace, while java.lang.Throwable.toString does not.  This means that uncaught exceptions print the stack twice.
+- Exceptions originating from Java (JVM or library) are translated to equivalent CLR exception types only when caught.  Additionally, `System.Exception.ToString` prints a stack trace, while `java.lang.Throwable.toString` does not.  This means that uncaught exceptions print the stack twice.
 
-- Rectangular multidimensional arrays [,] are implemented as jagged arrays [][] i.e., like Java arrays.  typeof(int[,]) == typeof(int[][]).  GetArrayRank() returns the actual rank; in .NET it returns 1 for jagged arrays.  GetElementType() returns the basic element; in .NET it returns an array type for jagged arrays.  All arrays implement the generic interfaces; in .NET only single-dimension and jagged arrays.
+- Rectangular multidimensional arrays [,] are implemented as jagged arrays [][] i.e., like Java arrays.  `typeof(int[,]) == typeof(int[][])`.  `GetArrayRank()` returns the actual rank; in .NET it returns 1 for jagged arrays.  `GetElementType()` returns the basic element; in .NET it returns an array type for jagged arrays.  All arrays implement the generic interfaces; in .NET only single-dimension and jagged arrays.
 
-- Non-zero lower bounds are not supported in System.Array::CreateInstance.
+- Non-zero lower bounds are not supported in `System.Array.CreateInstance`.
 
-- Casting an array object to System.Array, or to an interface, will result in a reference to a helper/proxy object which implements this interface.  The program can detect that object.ReferenceEquals(proxy, array) is false.  The proxy cannot be cast back to the original array.
+- Casting an array object to `System.Array`, or to an interface, will result in a reference to a helper/proxy object which implements this interface.  The program can detect that `object.ReferenceEquals(proxy, array)` is false.  The proxy cannot be cast back to the original array.
 
-- IEnumerable.Current implemented for an array of primitive integers will always return signed objects (System.Int32), never unsigned (System.UInt32).
+- `IEnumerable.Current` implemented for an array of primitive integers always returns signed objects (e.g `System.Int32`), never unsigned (`System.UInt32`).  This does not make a difference in the typical case where the result is used as a primitive value.
 
-- System.MarshalByRefObject is translated to java.lang.Object.
+- `System.MarshalByRefObject` is translated to `java.lang.Object`.
 
-- Attribute [MethodImplOptions.Synchronized] is not supported on constructors.
+- Attribute `[MethodImplOptions.Synchronized]` is not supported on constructors.
 
 - Module-level and assembly-level constructors/initializers are not supported.
 
-- AbandonedMutexException is not supported.  Any mutex objects still held at time of thread death will never be released.
+- `AbandonedMutexException` is not supported.  Any mutex objects still held at time of thread death will never be released.
 
-- The GetHashCode implementions attempt to match those in the .NET Framework, which are not necessarily the same as the implementations in .NET Core.
+- The `GetHashCode` implementions attempt to match those in the .NET Framework, which are not necessarily the same as the implementations in .NET Core.
 
-- StringBuilder does not support a maximum capacity.
+- `StringBuilder` does not support a maximum capacity.
 
-- Standard numeric format strings are supported, but a custom format, or a non-null IFormatProvider parameter in ToString functions will throw an exception.
+- Standard numeric format strings are supported, but a custom format, or an `IFormatProvider` which also implements `NumberFormatInfo` will cause `ToString` functions to throw an exception.
 
-- Non-ordinal, culture-dependant string comparisons and casing are not 100% same, because of differences between Windows NLS and the java.text package.
+- Non-ordinal, culture-dependant string comparisons and casing are not 100% same, because of differences between Windows NLS and the `java.text` package.
 
-- String is not castable to IConvertible or to the non-generic IComparable interface.
+- `String` is not castable to `IConvertible` or to the non-generic `IComparable` interface.

@@ -330,8 +330,10 @@ namespace SpaceFlint.CilToJava
             if (boxedType != null)
             {
                 boxedType.BoxValue(code);
+                #if false
                 if (plainType.IsEnum)
                     code.NewInstruction(0xC0 /* checkcast */, boxedType, null);
+                #endif
             }
             else if (plainType.IsGenericParameter)
             {

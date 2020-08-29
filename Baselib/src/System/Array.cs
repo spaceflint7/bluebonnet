@@ -182,7 +182,7 @@ namespace system
                     {
                         srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, sourceIndex + length);
                         dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, destinationIndex + length);
-                        ((ValueMethod) ((ValueType) srcObj)).CopyInto((ValueType) dstObj);
+                        ((ValueMethod) ((ValueType) srcObj)).CopyTo((ValueType) dstObj);
                     }
                 }
                 else
@@ -191,7 +191,7 @@ namespace system
                     {
                         srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, sourceIndex + idx);
                         dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, destinationIndex + idx);
-                        ((ValueMethod) ((ValueType) srcObj)).CopyInto((ValueType) dstObj);
+                        ((ValueMethod) ((ValueType) srcObj)).CopyTo((ValueType) dstObj);
                     }
                 }
             }
@@ -1028,7 +1028,7 @@ namespace system
                         // this will throw invalid cast if the types do not match.
                         // but note that it will succeed with generic instance types
                         // even when the type arguments do not match.
-                        ((ValueMethod) ((ValueType) valueArray[index])).CopyInto((ValueType) value);
+                        ((ValueMethod) ((ValueType) valueArray[index])).CopyTo((ValueType) value);
                         break;
 
                     case object[] objectArray:

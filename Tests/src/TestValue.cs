@@ -32,6 +32,7 @@ namespace Tests
         {
             TestBoxing();
             TestObject();
+            TestEnum();
         }
 
         void TestBoxing()
@@ -74,6 +75,29 @@ namespace Tests
             {
                 var v = myv;
                 object o = myv;
+            }
+        }
+
+        //
+        // Enum
+        //
+
+        [Flags] enum MyEnum : sbyte { None, First = 1, Second = 8, Third = 32 };
+
+        void TestEnum()
+        {
+            var x = MyEnum.First | MyEnum.Second;
+            object y = (object) x;
+            TestEnum2<MyEnum>(ref x);
+            Console.Write("\t");
+            Console.Write(y);
+            Console.Write($"\t{x:F},{x:G},{x:D},{x:X},{x.GetType().GetEnumUnderlyingType()}");
+            Console.WriteLine();
+
+            void TestEnum2<T>(ref T e)
+            {
+                e = (T) (object) MyEnum.Third;
+                Console.Write(e);
             }
         }
 
