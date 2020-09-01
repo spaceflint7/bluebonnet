@@ -92,6 +92,9 @@ namespace system.globalization {
 
         public virtual CompareInfo CompareInfo => CompareInfoRef;
 
+        public static CultureInfo CurrentCulture
+            => system.threading.Thread.CurrentThread.CurrentCulture;
+
         public static CultureInfo InvariantCulture => s_InvariantCultureInfo;
 
         public virtual object Clone() => throw new System.NotImplementedException();

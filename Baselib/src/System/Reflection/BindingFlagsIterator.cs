@@ -14,6 +14,10 @@ namespace system.reflection
                                MemberTypes memberType,
                                System.Predicate<java.lang.reflect.AccessibleObject> callback)
         {
+            //
+            // calculate modifier AND mask and result for matches
+            //
+
             int modifierMask = 0;
             int modifierValue = 0;
 
@@ -43,12 +47,20 @@ namespace system.reflection
             }
             bindingAttr &= ~chk;
 
+            //
+            // check if iteration is required on base hierarchy
+            //
+
             RuntimeType stopAtType = null;
             if ((bindingAttr & BindingFlags.DeclaredOnly) != 0)
             {
                 stopAtType = initialType;
                 bindingAttr &= ~BindingFlags.DeclaredOnly;
             }
+
+            //
+            // run iteration
+            //
 
             if (bindingAttr != 0)
             {

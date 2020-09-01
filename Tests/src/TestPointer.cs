@@ -11,7 +11,8 @@ namespace Tests
         {
             Test1();
             Test2("Hello, world");
-            //Test3(default(Guid));
+            Test3(default(Guid));
+            Test4(default(AAA));
         }
 
         unsafe void Test1()
@@ -59,12 +60,21 @@ namespace Tests
             Console.WriteLine(from + " -> " + new String(into) + "~~~");
         }
 
-        /*unsafe void Test3(Guid from)
+        unsafe void Test3(Guid from)
         {
             Guid *pFrom = &from;
             *pFrom = new Guid("00000001-0000-0000-0000-000000000000");
             Console.WriteLine(from);
-        }*/
+        }
+
+        struct AAA {}
+
+        unsafe void Test4(AAA from)
+        {
+            AAA *pFrom = &from;
+            *pFrom = new AAA();
+            Console.WriteLine(from);
+        }
 
     }
 }

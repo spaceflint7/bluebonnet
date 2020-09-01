@@ -3,6 +3,7 @@ namespace system
 {
 
     public class Int16 : system.ValueType, system.ValueMethod,
+                         System.IComparable, System.IComparable<short>,
                          System.IConvertible, System.IEquatable<short>, System.IFormattable
     {
 
@@ -46,9 +47,31 @@ namespace system
         {
             if (string.IsNullOrEmpty(format))
                 return ToString();
-            return ParseNumbers.FormatNumber(
-                (java.lang.String) (object) format, provider, java.lang.Integer.valueOf(Get()));
+            return ParseNumbers.FormatNumber((java.lang.String) (object) format, provider,
+                                             java.lang.Short.valueOf((short) Get()));
         }
+
+        public string ToString(string format) => ToString(format, null);
+
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (object.ReferenceEquals(obj, null))
+                return 1;
+            if (obj is Int16 objInt16)
+                return CompareTo((short) objInt16.Get());
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<short>
+        public int CompareTo(short b)
+        {
+            int a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
+        }
+
 
 
 
@@ -134,11 +157,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 
@@ -171,7 +192,7 @@ namespace system
 
 
     #pragma warning disable 0659
-    public class UInt16 : Int16, System.IEquatable<ushort>
+    public class UInt16 : Int16, System.IComparable<ushort>, System.IEquatable<ushort>
     {
 
         new public static UInt16 Box(int v) => new UInt16() { v = (short) v };
@@ -191,6 +212,17 @@ namespace system
 
         public override System.TypeCode GetTypeCode() => System.TypeCode.UInt16;
 
+        // System.IComparable
+        public override int CompareTo(object obj)
+        {
+            if (object.ReferenceEquals(obj, null))
+                return 1;
+            if (obj is UInt16 objUInt16)
+                return CompareTo((ushort) objUInt16.Get());
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<ushort>
         public int CompareTo(ushort v) => CompareTo((short) Get(), (short) v);
 
         public static int CompareTo(short a, short b)

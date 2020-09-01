@@ -46,7 +46,11 @@ namespace system
 
                 count = count >> shift;
                 this.array.Set(array = java.lang.reflect.Array.newInstance(cls, count));
-
+                if (! cls.isPrimitive())
+                {
+                    for (int i = 0; i < count; i++)
+                        java.lang.reflect.Array.set(array, i, cls.newInstance());
+                }
             }
             return array;
         }
@@ -63,22 +67,14 @@ namespace system
         }
 
         [java.attr.RetainName]
-        public static Span<object> Localloc(long bytes)
+        public static Span<ValueType> Localloc(long bytes)
         {
             // this helper method is invoked by code which uses the 'localloc'
             // instruction.  see also CodeSpan::Localloc method.
             int intBytes = (int) bytes;
             if (intBytes != bytes)
                 throw new System.ArgumentOutOfRangeException();
-            return new Span<object>() { array = new Reference(), count = intBytes };
-        }
-
-        [java.attr.RetainName]
-        public static Span<char> String(java.lang.String str)
-        {
-            // this helper method is invoked by code which stores a string
-            // variable into a pointer.  see also CodeSpan::Address method.
-            return new Span<char>(str.toCharArray()) { count = System.SByte.MinValue };
+            return new Span<ValueType>() { array = new Reference(), count = intBytes };
         }
 
         [java.attr.RetainName]
@@ -116,6 +112,21 @@ namespace system
         }
 
         //
+        // Assign
+        //
+        // this helper method is invoked by code which stores an address into
+        // a pointer.  see also CodeSpan::Address method.
+        //
+
+        [java.attr.RetainName]
+        public static Span<char> Assign(java.lang.String str)
+            => new Span<char>(str.toCharArray()) { count = System.SByte.MinValue };
+
+        [java.attr.RetainName]
+        public static System.ValueType Assign(ValueType source)
+            => new Span<T>((T[]) (object) (new ValueType[1] { source }));
+
+        //
         // helper methods to access a span of a primitive type.
         // see also CodeSpan::LoadStore method.
         //
@@ -150,8 +161,24 @@ namespace system
         public double LoadD() => ((double[]) Array(java.lang.Double.TYPE))[start];
         public void StoreD(double value) => ((double[]) Array(java.lang.Double.TYPE))[start] = value;
 
-        public object Load() => ((object[]) Array((java.lang.Class) typeof(object)))[start];
-        public void Store(object value) => ((object[]) Array((java.lang.Class) typeof(object)))[start] = value;
+        //
+        // helper methods to access a span of a value type.
+        // see also CodeSpan::LoadStore method.
+        //
+
+        public system.ValueType Load(java.lang.Class cls)
+            => (system.ValueType) java.lang.reflect.Array.get(Array(cls), start);
+
+        public void Store(ValueType value, java.lang.Class cls)
+            => ((ValueMethod) value).CopyTo(Load(cls));
+
+        public void Clear()
+        {
+            if (this.array != null && this.array.Get() != null)
+            {
+                ((ValueMethod) Load(null)).Clear();
+            }
+        }
 
         //
         // System.Span methods

@@ -110,6 +110,20 @@ namespace SpaceFlint.CilToJava
 
 
 
+        internal static void MakeRoomForCategory2ValueOnStack(JavaCode code)
+        {
+            // ensure the stack has enough space for a category-2 value
+            if (code.StackMap != null)
+            {
+                code.StackMap.PushStack(JavaType.IntegerType);
+                code.StackMap.PushStack(JavaType.LongType);
+                code.StackMap.PopStack(CilMain.Where);
+                code.StackMap.PopStack(CilMain.Where);
+            }
+        }
+
+
+
         public static List<JavaClass> Import(List<TypeDefinition> cilTypes)
         {
             if (_Where != null)

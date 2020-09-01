@@ -52,92 +52,42 @@ namespace system.reflection
             // calculate modifier AND mask and result for matches
             //
 
-            int modifierMask = 0;
-            int modifierValue = 0;
+            RuntimeMethodInfo foundMethod = null;
 
-            BindingFlags chk = bindingAttr & (BindingFlags.Public | BindingFlags.NonPublic);
-            if (chk != (BindingFlags.Public | BindingFlags.NonPublic))
-            {
-                if (chk == 0)       // if neither, no methods will match
-                    return null;
-                // methods with internal access are converted to public access,
-                // so we cannot honor the distinction between Public and NonPublic
-                /*
-                modifierMask |= java.lang.reflect.Modifier.PUBLIC;
-                if (chk == BindingFlags.Public)
-                    modifierValue |= java.lang.reflect.Modifier.PUBLIC;
-                */
-                bindingAttr &= ~chk;
-            }
-
-            chk = bindingAttr & (BindingFlags.Static | BindingFlags.Instance);
-            if (chk != (BindingFlags.Static | BindingFlags.Instance))
-            {
-                if (chk == 0)       // if neither, no methods will match
-                    return null;
-                modifierMask |= java.lang.reflect.Modifier.STATIC;
-                if (chk == BindingFlags.Static)
-                    modifierValue |= java.lang.reflect.Modifier.STATIC;
-                bindingAttr &= ~chk;
-            }
-
-            RuntimeType stopAtType = null;
-            if ((bindingAttr & BindingFlags.DeclaredOnly) != 0)
-            {
-                stopAtType = initialType;
-                bindingAttr &= ~BindingFlags.DeclaredOnly;
-            }
-
-            if (bindingAttr != 0)
-                throw new PlatformNotSupportedException("bad binding flags " + bindingAttr);
-
-            //
-            // collect methods from class and base classes
-            //
-
-            var currentType = initialType;
-            for (;;)
+            BindingFlagsIterator.Run(bindingAttr, initialType, MemberTypes.Method,
+                                     (javaAccessibleObject) =>
             {
                 #pragma warning disable 0436
-                java.lang.reflect.Method[] javaMethods =
-                    (java.lang.reflect.Method[]) (object)
-                            currentType.JavaClassForArray().getDeclaredMethods();
+                var javaMethod = (java.lang.reflect.Method) javaAccessibleObject;
                 #pragma warning restore 0436
 
-                foreach (var javaMethod in javaMethods)
-                {
-                    int jmodifiers = javaMethod.getModifiers();
-                    if ((jmodifiers & modifierMask) == modifierValue)
-                    {
-                        string originalName = javaMethod.getName();
-                        // note the actual suffix character below is configured
-                        // in CilMain.cs, with special considerations for Android.
-                        // we list all possible characters here, just in case.
-                        int idx = originalName.IndexOf('\u00AB'); // U+00AB Left-Pointing Double Angle Quotation Mark
-                        if (idx == -1)
-                            idx = originalName.IndexOf('\u00A1'); // U+00A1 Inverted Exclamation Mark
-                        if (idx == -1)
-                            idx = originalName.IndexOf('(');
-                        if (idx == -1)
-                            idx = originalName.IndexOf('!');
-                        var compareName =
-                            (idx == -1) ? originalName : originalName.Substring(0, idx);
+                string originalName = javaMethod.getName();
+                // note the actual suffix character below is configured
+                // in CilMain.cs, with special considerations for Android.
+                // we list all possible characters here, just in case.
+                int idx = originalName.IndexOf('\u00AB'); // U+00AB Left-Pointing Double Angle Quotation Mark
+                if (idx == -1)
+                    idx = originalName.IndexOf('\u00A1'); // U+00A1 Inverted Exclamation Mark
+                if (idx == -1)
+                    idx = originalName.IndexOf('(');
+                if (idx == -1)
+                    idx = originalName.IndexOf('!');
+                var compareName =
+                    (idx == -1) ? originalName : originalName.Substring(0, idx);
 
-                        if (name == compareName)
-                        {
-                            javaMethod.setAccessible(true);
-                            return new RuntimeMethodInfo(javaMethod, jmodifiers, initialType,
-                                                         originalName, compareName);
-                        }
-                    }
+                if (name == compareName)
+                {
+                    javaMethod.setAccessible(true);
+                    var jmodifiers = javaMethod.getModifiers();
+                    foundMethod = new RuntimeMethodInfo(javaMethod, jmodifiers, initialType,
+                                                        originalName, compareName);
+                    return false; // stop iteration
                 }
 
-                currentType = (system.RuntimeType) currentType.BaseType;
-                if (currentType == stopAtType)
-                    break;
-            }
+                return true; // continue iteration
+            });
 
-            return null;
+            return foundMethod;
         }
 
         //

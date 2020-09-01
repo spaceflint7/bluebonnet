@@ -89,7 +89,10 @@ namespace SpaceFlint.CilToJava
                     return 0x00; // nop
 
                 if (oldType == TypeCode.Single)
+                {
+                    CilMain.MakeRoomForCategory2ValueOnStack(code);
                     return 0x8D; // f2d
+                }
 
                 if (oldType == TypeCode.Int64)
                     return 0x8A; // l2d
@@ -113,6 +116,8 @@ namespace SpaceFlint.CilToJava
                 bool fromInt32 = (oldType != TypeCode.Int64 && oldType != TypeCode.UInt64);
                 if (fromInt32)
                 {
+                    CilMain.MakeRoomForCategory2ValueOnStack(code);
+
                     code.NewInstruction(0x85 /* i2l */, null, null);
                     code.StackMap.PushStack(JavaType.LongType);
 
@@ -176,6 +181,7 @@ namespace SpaceFlint.CilToJava
                 return 0x7F; // land
             }
 
+            CilMain.MakeRoomForCategory2ValueOnStack(code);
             return 0x85; // i2l
         }
 
@@ -285,6 +291,8 @@ namespace SpaceFlint.CilToJava
         public static void Calculation(JavaCode code, Code cilOp)
         {
             var stackTop1 = code.StackMap.PopStack(CilMain.Where);
+            if (cilOp == Code.Sub && CodeSpan.SubOffset(stackTop1, code))
+                return;
             var type1 = GetNumericTypeCode(stackTop1);
 
             if (cilOp == Code.Not)
@@ -300,7 +308,7 @@ namespace SpaceFlint.CilToJava
             else
             {
                 var stackTop2 = code.StackMap.PopStack(CilMain.Where);
-                if (CodeSpan.AddOffset(stackTop1, stackTop2, code))
+                if (cilOp == Code.Add && CodeSpan.AddOffset(stackTop1, stackTop2, code))
                     return;
 
                 char kind;
@@ -547,7 +555,7 @@ namespace SpaceFlint.CilToJava
             var boxedType = stackTop as BoxedType;
             if (boxedType == null || boxedType.IsBoxedReference != isRef)
             {
-                if (CodeSpan.LoadStore(isLoad, stackTop, opcodeType, code))
+                if (CodeSpan.LoadStore(isLoad, stackTop, opcodeType, null, code))
                     return;
 
                 if (object.ReferenceEquals(stackTop, CodeArrays.GenericArrayType))
@@ -590,7 +598,13 @@ namespace SpaceFlint.CilToJava
                     code.StackMap.PushStack(unboxedType);
                 }
                 else
+                {
+                    // if we are storing a real array into a boxed reference of
+                    // e.g., system.Array, then we have to create an array proxy
+                    CodeArrays.MaybeGetProxy(CodeArrays.GenericArrayType, unboxedType, code);
+
                     boxedType.SetValueOV(code);
+                }
                 return;
             }
 

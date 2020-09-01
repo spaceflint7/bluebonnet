@@ -120,6 +120,12 @@ namespace system
             {
                 if (genericObject.TryCast(castToType) != null)
                     return obj;
+                if (obj is system.Array.ProxySyncRoot objArray)
+                {
+                    var proxy = Array.GetProxy(objArray.SyncRoot, castToType, false);
+                    if (proxy != null)
+                        return proxy;
+                }
             }
             else
             {

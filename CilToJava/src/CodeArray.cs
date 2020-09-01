@@ -521,8 +521,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public static bool MaybeGetProxy(CilType fromType, CilType intoType,
-                                         JavaCode code, bool pushFromType = false)
+        public static bool MaybeGetProxy(CilType fromType, CilType intoType, JavaCode code)
         {
             if (    fromType.IsArray
                  || object.ReferenceEquals(fromType, GenericArrayType)

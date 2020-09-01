@@ -91,4 +91,14 @@ namespace system
         ValueType Clone();
     }
 
+
+
+    [java.attr.Discard] // discard in output
+    public static class Convert
+    {
+        // called by various implementations of System.IConvertible.ToType
+        [java.attr.Discard] extern public static object DefaultToType(
+            System.IConvertible value, System.Type targetType, System.IFormatProvider provider);
+    }
+
 }

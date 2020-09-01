@@ -1433,6 +1433,54 @@ namespace system
 
 
 
+        #pragma warning disable 0436
+        public override System.Array GetEnumValues()
+        {
+            // the default implementation of System.Type::GetEnumValues()
+            // throws NotImplementedException, so we have to use reflection
+            // to invoke the underlying private method that does the work
+
+            if (! IsEnum)
+                throw new ArgumentException();
+
+            // the default implementation of System.Type::GetEnumValues()
+            // throws NotImplementedException, so we have to use reflection
+            // to invoke the underlying private method that does the work
+
+            if (GetEnumRawConstantValues == null)
+            {
+                var searchClass = (java.lang.Class) typeof(System.Type);
+                var modifierMask  = java.lang.reflect.Modifier.PRIVATE
+                                  | java.lang.reflect.Modifier.FINAL
+                                  | java.lang.reflect.Modifier.STATIC;
+                var modifierValue = java.lang.reflect.Modifier.PRIVATE
+                                  | java.lang.reflect.Modifier.FINAL;
+
+                foreach (java.lang.reflect.Method method in
+                            (java.lang.reflect.Method[]) (object) searchClass.getDeclaredMethods())
+                {
+                    if (    (method.getModifiers() & modifierMask) == modifierValue
+                         && method.getParameterTypes().Length == 0
+                         && method.getReturnType() == (java.lang.Class) typeof(System.Array))
+                    {
+                        method.setAccessible(true);
+                        GetEnumRawConstantValues = method;
+                    }
+                }
+            }
+
+            if (GetEnumRawConstantValues != null)
+            {
+                return (System.Array) GetEnumRawConstantValues.invoke(this, null);
+            }
+
+            throw new InvalidOperationException();
+        }
+        [java.attr.RetainType] private static java.lang.reflect.Method GetEnumRawConstantValues;
+        #pragma warning restore 0436
+
+
+
         //
         // Reflection on members of the type
         //
@@ -1530,8 +1578,6 @@ namespace system
         public virtual GenericParameterAttributes GenericParameterAttributes
         public virtual int GenericParameterPosition
         public virtual Type[] GetGenericParameterConstraints()
-
-        public virtual Array GetEnumValues()
 
         internal virtual string FormatTypeName(bool serialization)
         public virtual InterfaceMapping GetInterfaceMap(Type interfaceType)

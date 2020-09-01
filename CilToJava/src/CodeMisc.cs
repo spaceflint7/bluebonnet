@@ -140,7 +140,7 @@ namespace SpaceFlint.CilToJava
                 var dataType = CilType.From(typeRef);
                 var fromType = (CilType) code.StackMap.PopStack(CilMain.Where);
 
-                if (CodeSpan.LoadStore(true, fromType, null, code))
+                if (CodeSpan.LoadStore(true, fromType, null, dataType, code))
                     return;
 
                 if (    (! dataType.IsReference) && cilOp == Code.Ldobj
@@ -265,14 +265,15 @@ namespace SpaceFlint.CilToJava
         {
             if (data is TypeReference typeRef)
             {
+                var dataType = CilType.From(typeRef);
+
                 var stackTop1 = (CilType) code.StackMap.PopStack(CilMain.Where);
                 var stackTop2 = (CilType) code.StackMap.PopStack(CilMain.Where);
-                if (CodeSpan.LoadStore(false, stackTop2, null, code))
+                if (CodeSpan.LoadStore(false, stackTop2, null, dataType, code))
                     return;
                 code.StackMap.PushStack(stackTop2);
                 code.StackMap.PushStack(stackTop1);
 
-                var dataType = CilType.From(typeRef);
                 GenericUtil.ValueCopy(dataType, code, true);
                 code.StackMap.PopStack(CilMain.Where);
                 code.StackMap.PopStack(CilMain.Where);
@@ -289,6 +290,9 @@ namespace SpaceFlint.CilToJava
             {
                 var dataType = CilType.From(typeRef);
                 var fromType = code.StackMap.PopStack(CilMain.Where);
+
+                if (CodeSpan.Clear(fromType, dataType, code))
+                    return;
 
                 if (    dataType.IsGenericParameter
                      || (dataType.IsValueClass && dataType.Equals(fromType)))

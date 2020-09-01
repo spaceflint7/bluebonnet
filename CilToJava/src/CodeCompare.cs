@@ -237,7 +237,7 @@ namespace SpaceFlint.CilToJava
                 }
                 else
                 {
-                    return TestGtLt(code, stackTop,
+                    return TestGtLt(code, stackTop, stackTop2,
              /* if greater than */ (    cilOp == Code.Bgt
               /* (vs less than) */   || cilOp == Code.Bgt_S
                                      || cilOp == Code.Bgt_Un
@@ -286,7 +286,7 @@ namespace SpaceFlint.CilToJava
 
             byte op = (cilOp == Code.Ceq)
                     ? TestEq(code, stackTop, stackTop2, cilInst)
-                    : TestGtLt(code, stackTop,
+                    : TestGtLt(code, stackTop, stackTop2,
              /* if greater than */ (    cilOp == Code.Cgt
               /* (vs less than) */   || cilOp == Code.Cgt_Un),
                  /* if unsigned */ (    cilOp == Code.Cgt_Un
@@ -326,7 +326,7 @@ namespace SpaceFlint.CilToJava
         {
             if (stackTop.IsReference || stackTop2.IsReference)
             {
-                CodeSpan.Compare(stackTop, stackTop2, cilInst, code);
+                CodeSpan.CompareEq(stackTop, stackTop2, cilInst, code);
                 return 0xA5; // if_acmpeq (reference)
             }
 
@@ -373,7 +373,8 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static byte TestGtLt(JavaCode code, JavaType stackTop, bool greater, bool unsigned_unordered)
+        static byte TestGtLt(JavaCode code, JavaType stackTop, JavaType stackTop2,
+                             bool greater, bool unsigned_unordered)
         {
             byte op;
 
@@ -444,7 +445,15 @@ namespace SpaceFlint.CilToJava
                     return 0xA6; // if_acmpne
                 }
                 else
+                {
+                    if (CodeSpan.CompareGtLt(stackTop, stackTop2, code))
+                    {
+                        return (byte) (greater ? 0x9D   // ifgt
+                                               : 0x9B); // iflt
+                    }
+
                     throw new InvalidProgramException();
+                }
 
                 if (typeBits != 0)
                     typeName = "UInt" + typeBits.ToString();

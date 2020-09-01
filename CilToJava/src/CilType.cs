@@ -160,7 +160,7 @@ namespace SpaceFlint.CilToJava
                     if (defType.HasFields && numGeneric == 0)
                     {
                         var type = From(defType.Fields[0].FieldType);
-                        if ((! type.IsReference) && type.PrimitiveType >= TypeCode.SByte
+                        if ((! type.IsReference) && type.PrimitiveType >= TypeCode.Boolean
                                                  && type.PrimitiveType <= TypeCode.UInt64)
                         {
                             JavaName = ImportName(defType, 0);
@@ -733,10 +733,14 @@ namespace SpaceFlint.CilToJava
         private string VolatileName(string nm, bool isVolatile)
             => ((UnboxedType.IsVolatile || isVolatile) ? ("Volatile" + nm) : nm);
 
-        public virtual void GetValue(JavaCode code, bool isVolatile = false) =>
+        public virtual void GetValue(JavaCode code, bool isVolatile = false)
+        {
             code.NewInstruction(0xB6 /* invokevirtual */, ThisOrEnum,
                                 new JavaMethodRef(VolatileName("Get", isVolatile),
                                                   UnboxedTypeInMethod));
+            if (UnboxedTypeInMethod.Category == 2)
+                CilMain.MakeRoomForCategory2ValueOnStack(code);
+        }
 
         public virtual void SetValueOV(JavaCode code, bool isVolatile = false) =>
             code.NewInstruction(0xB6 /* invokevirtual */, ThisOrEnum,
@@ -783,6 +787,8 @@ namespace SpaceFlint.CilToJava
             var innerOrEnum = GetInnerObject(code);
             code.NewInstruction(0xB6 /* invokevirtual */, innerOrEnum,
                                 new JavaMethodRef("Get", UnboxedTypeInMethod));
+            if (UnboxedTypeInMethod.Category == 2)
+                CilMain.MakeRoomForCategory2ValueOnStack(code);
         }
 
         public override void SetValueOV(JavaCode code, bool isVolatile = false)

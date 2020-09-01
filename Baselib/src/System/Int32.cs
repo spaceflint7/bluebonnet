@@ -3,6 +3,7 @@ namespace system
 {
 
     public class Int32 : system.ValueType, system.ValueMethod,
+                         System.IComparable, System.IComparable<int>,
                          System.IConvertible, System.IEquatable<int>, System.IFormattable
     {
 
@@ -49,13 +50,30 @@ namespace system
         {
             if (string.IsNullOrEmpty(format))
                 return ToString();
-            return ParseNumbers.FormatNumber(
-                (java.lang.String) (object) format, provider, java.lang.Integer.valueOf(Get()));
+            return ParseNumbers.FormatNumber((java.lang.String) (object) format, provider,
+                                             java.lang.Integer.valueOf(Get()));
         }
 
         public string ToString(string format) => ToString(format, null);
 
         public string ToString(System.IFormatProvider provider) => ToString();
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (object.ReferenceEquals(obj, null))
+                return 1;
+            if (obj is Int32 objInt32)
+                return CompareTo((int) objInt32.Get());
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<int>
+        public int CompareTo(int b)
+        {
+            int a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
+        }
 
 
 
@@ -189,11 +207,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 
@@ -231,7 +247,7 @@ namespace system
 
 
     #pragma warning disable 0659
-    public class UInt32 : Int32, System.IEquatable<uint>
+    public class UInt32 : Int32, System.IComparable<uint>, System.IEquatable<uint>
     {
 
         new public static UInt32 Box(int v) => new UInt32() { v = v };
@@ -254,8 +270,17 @@ namespace system
 
         public override System.TypeCode GetTypeCode() => System.TypeCode.UInt32;
 
-        //public int CompareTo(uint v) => java.lang.Integer.compareUnsigned(Get(), (int) v);
+        // System.IComparable
+        public override int CompareTo(object obj)
+        {
+            if (object.ReferenceEquals(obj, null))
+                return 1;
+            if (obj is UInt32 objUInt32)
+                return CompareTo((uint) objUInt32.Get());
+            throw new System.ArgumentException();
+        }
 
+        // System.IComparable<uint>
         public int CompareTo(uint v) => CompareTo(Get(), (int) v);
 
         public static int CompareTo(int a, int b)

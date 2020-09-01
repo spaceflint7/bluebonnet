@@ -25,7 +25,7 @@ namespace system.reflection
         }
 
         //
-        // GetFields (called by system.RuntimeType.GetFields(GetFields)
+        // GetFields (called by system.RuntimeType.GetFields()
         //
 
         public static FieldInfo[] GetFields(BindingFlags bindingAttr, RuntimeType initialType)
@@ -35,8 +35,9 @@ namespace system.reflection
             BindingFlagsIterator.Run(bindingAttr, initialType, MemberTypes.Field,
                                      (javaAccessibleObject) =>
             {
-                list.Add(new RuntimeFieldInfo((java.lang.reflect.Field) javaAccessibleObject,
-                                              initialType));
+                var javaField = (java.lang.reflect.Field) javaAccessibleObject;
+                javaField.setAccessible(true);
+                list.Add(new RuntimeFieldInfo(javaField, initialType));
                 return true;
             });
 
@@ -66,8 +67,35 @@ namespace system.reflection
         public override System.Type ReflectedType
             => throw new PlatformNotSupportedException();
 
-        public override string Name
-            => throw new PlatformNotSupportedException();
+        public override string Name => JavaField.getName();
+
+        public override object GetRawConstantValue()
+        {
+            if ((JavaField.getModifiers() & java.lang.reflect.Modifier.STATIC) != 0)
+            {
+                var value = JavaField.get(null);
+                switch (value)
+                {
+                    case java.lang.Boolean boolBox:
+                        return system.Boolean.Box(boolBox.booleanValue() ? 1 : 0);
+                    case java.lang.Byte byteBox:
+                        return system.SByte.Box(byteBox.byteValue());
+                    case java.lang.Character charBox:
+                        return system.Char.Box(charBox.charValue());
+                    case java.lang.Short shortBox:
+                        return system.Int16.Box(shortBox.shortValue());
+                    case java.lang.Integer intBox:
+                        return system.Int32.Box(intBox.intValue());
+                    case java.lang.Long longBox:
+                        return system.Int64.Box(longBox.longValue());
+                    case java.lang.Float floatBox:
+                        return system.Single.Box(floatBox.floatValue());
+                    case java.lang.Double doubleBox:
+                        return system.Double.Box(doubleBox.doubleValue());
+                }
+            }
+            throw new System.NotSupportedException();
+        }
 
         public override System.RuntimeFieldHandle FieldHandle
             => throw new PlatformNotSupportedException();

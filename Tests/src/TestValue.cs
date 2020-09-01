@@ -82,7 +82,7 @@ namespace Tests
         // Enum
         //
 
-        [Flags] enum MyEnum : sbyte { None, First = 1, Second = 8, Third = 32 };
+        [Flags] enum MyEnum : short { None, First = 1, Second = 8, Third = 32 };
 
         void TestEnum()
         {
@@ -92,6 +92,14 @@ namespace Tests
             Console.Write("\t");
             Console.Write(y);
             Console.Write($"\t{x:F},{x:G},{x:D},{x:X},{x.GetType().GetEnumUnderlyingType()}");
+            Console.Write($"\t{((IConvertible) x).ToType(typeof(long), null)}");
+            Console.Write($"\t{x.HasFlag(MyEnum.Third)}");
+            Console.WriteLine();
+
+            var names = typeof(MyEnum).GetEnumNames();
+            var values = typeof(MyEnum).GetEnumValues();
+            for (int i = 0; i < names.Length; i++)
+                Console.Write($"\t{names[i]} = {(short) values.GetValue(i)}");
             Console.WriteLine();
 
             void TestEnum2<T>(ref T e)

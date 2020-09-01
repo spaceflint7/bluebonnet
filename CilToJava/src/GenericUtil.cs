@@ -322,6 +322,8 @@ namespace SpaceFlint.CilToJava
 
             if (! (fromType.IsInterface || fromType.IsDelegate))
                 return;
+            string varianceString = null;
+
             bool anyVariance = false;
             foreach (var gp in defType.GenericParameters)
             {
@@ -332,18 +334,31 @@ namespace SpaceFlint.CilToJava
                 }
             }
             if (! anyVariance)
-                return;
+            {
+                if (fromType.JavaName == "system.collections.generic.IComparer$$1")
+                {
+                    // force a variance string for an interface that we create
+                    // as an abstract class;  see also IComparer.cs in baselib
+                    varianceString = "I";
+                }
+                else
+                    return;
+            }
 
             // build a string that describes the generic variance
 
-            var chars = new char[defType.GenericParameters.Count];
-            int idx = 0;
-            foreach (var gp in defType.GenericParameters)
+            if (varianceString == null)
             {
-                var v = gp.Attributes & GenericParameterAttributes.VarianceMask;
-                chars[idx++] = (v == GenericParameterAttributes.Covariant)     ? 'O'
-                             : (v == GenericParameterAttributes.Contravariant) ? 'I'
-                                                                               : ' ';
+                var chars = new char[defType.GenericParameters.Count];
+                int idx = 0;
+                foreach (var gp in defType.GenericParameters)
+                {
+                    var v = gp.Attributes & GenericParameterAttributes.VarianceMask;
+                    chars[idx++] = (v == GenericParameterAttributes.Covariant)     ? 'O'
+                                 : (v == GenericParameterAttributes.Contravariant) ? 'I'
+                                                                                   : ' ';
+                }
+                varianceString = new string(chars);
             }
 
             var varianceField = new JavaField();
@@ -354,7 +369,7 @@ namespace SpaceFlint.CilToJava
                                 | JavaAccessFlags.ACC_PUBLIC
                                 | JavaAccessFlags.ACC_TRANSIENT
                                 | JavaAccessFlags.ACC_SYNTHETIC;
-            varianceField.Constant = new string(chars);
+            varianceField.Constant = varianceString;
             varianceField.Class = theClass;
 
             if (theClass.Fields == null)

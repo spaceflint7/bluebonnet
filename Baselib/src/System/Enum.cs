@@ -1,4 +1,6 @@
 
+using System.Globalization;
+
 namespace system
 {
 
@@ -6,8 +8,11 @@ namespace system
 
     [System.Serializable]
     public abstract class Enum : system.ValueType, system.ValueMethod, System.IComparable,
-                                 System.IFormattable //System.IConvertible
+                                 System.IFormattable, System.IConvertible
     {
+
+        // warning, do not add fields in this class.
+        // doing so will interfere with enumeration of constants.
 
         //
         // getters and setters
@@ -80,31 +85,105 @@ namespace system
 
 
         //
-        // GetUnderlyingType
+        // ToObject
+        //
+
+        public static object ToObject(System.Type enumType, long value)
+        {
+            ThrowHelper.ThrowIfNull(enumType);
+            if (! enumType.IsEnum)
+                throw new System.ArgumentException();
+            var enumRuntimeType = enumType as RuntimeType;
+            if (enumRuntimeType == null)
+                throw new System.ArgumentException();
+            return Box(value, enumRuntimeType.JavaClassForArray());
+        }
+
+        public static object ToObject(System.Type enumType, ulong value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, uint value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, int value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, ushort value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, short value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, char value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, byte value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, sbyte value)
+            => ToObject(enumType, (long) value);
+
+        public static object ToObject(System.Type enumType, bool value)
+            => ToObject(enumType, value ? 1L : 0L);
+
+
+
+        //
+        // HasFlag
+        //
+
+        public bool HasFlag(Enum flag)
+        {
+            ThrowHelper.ThrowIfNull(flag);
+            if (! this.GetType().IsEquivalentTo(flag.GetType()))
+                throw new System.ArgumentException();
+            var v = flag.GetLong();
+            return (GetLong() & v) == v;
+        }
+
+
+
+        //
+        // implemented via System.Type:  GetUnderlyingType, GetTypeCode,
+        // IsDefined, GetName, GetNames, GetValues
         //
 
         public static System.Type GetUnderlyingType(System.Type enumType)
         {
             ThrowHelper.ThrowIfNull(enumType);
             return enumType.GetEnumUnderlyingType();
-            #if false
-            if (enumType.IsEnum && enumType is RuntimeType enumRuntimeType)
-            {
-                var fields = enumRuntimeType.JavaClassForArray().getDeclaredFields();
-                if (fields.Length > 1)
-                {
-                    var f = fields[0];
-                    if ((f.getModifiers() & java.lang.reflect.Modifier.STATIC) == 0)
-                    {
-                        var fldType = system.RuntimeType.GetType(f.getType());
-                        var typeCode = (int) System.Type.GetTypeCode(fldType);
-                        if (typeCode >= 4 && typeCode <= 12)
-                            return fldType;
-                    }
-                }
-            }
-            throw new System.ArgumentException();
-            #endif
+        }
+
+        public System.TypeCode GetTypeCode()
+        {
+            var typeCode = System.Type.GetTypeCode(GetType().GetEnumUnderlyingType());
+            if ((int) typeCode >= 3 && (int) typeCode <= 12) // boolean .. uint64
+                return typeCode;
+            throw new System.InvalidOperationException();
+        }
+
+        public static bool IsDefined(System.Type enumType, object value)
+        {
+            ThrowHelper.ThrowIfNull(enumType);
+            return enumType.IsEnumDefined(value);
+        }
+
+        public static string GetName(System.Type enumType, object value)
+        {
+            ThrowHelper.ThrowIfNull(enumType);
+            return enumType.GetEnumName(value);
+        }
+
+        public static string[] GetNames(System.Type enumType)
+        {
+            ThrowHelper.ThrowIfNull(enumType);
+            return enumType.GetEnumNames();
+        }
+
+        public static System.Array GetValues(System.Type enumType)
+        {
+            ThrowHelper.ThrowIfNull(enumType);
+            return enumType.GetEnumValues();
         }
 
 
@@ -166,33 +245,21 @@ namespace system
         {
             if (format.Length == 1)
             {
-                bool asFlags = false;
-                switch (format[0])
+                switch (Char.ToUpperInvariant(format[0]))
                 {
-                    case 'f': case 'F':
-                        asFlags = true;
-                        goto case 'G';
-
-                    case 'g': case 'G':
-                        if (! asFlags)
-                        {
-                            asFlags = ((java.lang.Class) typeof (EnumFlags))
-                                            .isAssignableFrom(cls);
-                        }
-                        return FormatNames(cls, asFlags, value);
-
-                    case 'd': case 'D':
-                        return java.lang.Long.toString(value);
-
-                    case 'x': case 'X':
-                        return java.lang.Long.toHexString(value);
-                }
+                    case 'F': return FormatNames(cls, value, true);
+                    case 'G': return FormatNames(cls, value,
+                                                 ((java.lang.Class) typeof (EnumFlags))
+                                                         .isAssignableFrom(cls));
+                    case 'D': return java.lang.Long.toString(value);
+                    case 'X': return FormatHex(cls, value);
+                };
             }
             throw new System.FormatException();
 
 
 
-            static string FormatNames(java.lang.Class cls, bool asFlags, long v)
+            static string FormatNames(java.lang.Class cls, long v, bool asFlags)
             {
                 var fields = cls.getDeclaredFields();
                 int n = fields.Length;
@@ -252,9 +319,84 @@ namespace system
 
                 return (v == 0) ? sb.ToString() : null;
             }
+
+            static string FormatHex(java.lang.Class cls, long v)
+            {
+                var typeCode = System.Type.GetTypeCode(
+                                system.RuntimeType.GetType(cls).GetEnumUnderlyingType());
+                var hexfmt = typeCode switch
+                {
+                    System.TypeCode.Boolean => "%02X",
+                    System.TypeCode.Char    => "%04X",
+                    System.TypeCode.SByte   => "%02X",
+                    System.TypeCode.Byte    => "%02X",
+                    System.TypeCode.Int16   => "%04X",
+                    System.TypeCode.UInt16  => "%04X",
+                    System.TypeCode.Int32   => "%08X",
+                    System.TypeCode.UInt32  => "%08X",
+                    System.TypeCode.Int64   => "%016X",
+                    System.TypeCode.UInt64  => "%016X",
+                    _                       => throw new System.InvalidOperationException()
+                };
+                return java.lang.String.format(
+                                hexfmt, new object[] { java.lang.Long.valueOf(v) });
+            }
         }
 
 
+
+        //
+        // IConvertible
+        //
+
+        bool System.IConvertible.ToBoolean(System.IFormatProvider provider)
+            => System.Convert.ToBoolean(GetLong(), CultureInfo.CurrentCulture);
+
+        char System.IConvertible.ToChar(System.IFormatProvider provider)
+            => System.Convert.ToChar(GetLong(), CultureInfo.CurrentCulture);
+
+        sbyte System.IConvertible.ToSByte(System.IFormatProvider provider)
+            => System.Convert.ToSByte(GetLong(), CultureInfo.CurrentCulture);
+
+        byte System.IConvertible.ToByte(System.IFormatProvider provider)
+            => System.Convert.ToByte(GetLong(), CultureInfo.CurrentCulture);
+
+        short System.IConvertible.ToInt16(System.IFormatProvider provider)
+            => System.Convert.ToInt16(GetLong(), CultureInfo.CurrentCulture);
+
+        ushort System.IConvertible.ToUInt16(System.IFormatProvider provider)
+            => System.Convert.ToUInt16(GetLong(), CultureInfo.CurrentCulture);
+
+        int System.IConvertible.ToInt32(System.IFormatProvider provider)
+            => System.Convert.ToInt32(GetLong(), CultureInfo.CurrentCulture);
+
+        uint System.IConvertible.ToUInt32(System.IFormatProvider provider)
+            => System.Convert.ToUInt32(GetLong(), CultureInfo.CurrentCulture);
+
+        long System.IConvertible.ToInt64(System.IFormatProvider provider)
+            => System.Convert.ToInt64(GetLong(), CultureInfo.CurrentCulture);
+
+        ulong System.IConvertible.ToUInt64(System.IFormatProvider provider)
+            => System.Convert.ToUInt64(GetLong(), CultureInfo.CurrentCulture);
+
+        float System.IConvertible.ToSingle(System.IFormatProvider provider)
+            => System.Convert.ToSingle(GetLong(), CultureInfo.CurrentCulture);
+
+        double System.IConvertible.ToDouble(System.IFormatProvider provider)
+            => System.Convert.ToDouble(GetLong(), CultureInfo.CurrentCulture);
+
+        decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
+            => System.Convert.ToDecimal(GetLong(), CultureInfo.CurrentCulture);
+
+        System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
+            => throw new System.InvalidCastException();
+
+        object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
+
+        //
+        // value methods
+        //
 
         void ValueMethod.Clear() => SetLong(0L);
         void ValueMethod.CopyTo(ValueType into) => ((Enum) into).SetLong(GetLong());

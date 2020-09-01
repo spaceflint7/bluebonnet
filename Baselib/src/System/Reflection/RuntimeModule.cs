@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 namespace system.reflection
 {
 
+    public abstract class Module { }
+
     public sealed class RuntimeModule
     {
 

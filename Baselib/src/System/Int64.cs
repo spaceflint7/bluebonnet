@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class Int64 : system.ValueType, system.ValueMethod, java.lang.Cloneable
+    public class Int64 : system.ValueType, system.ValueMethod,
+                         System.IConvertible, System.IEquatable<long>, System.IFormattable
     {
 
         [java.attr.RetainType] protected long v;
@@ -23,6 +24,9 @@ namespace system
         public static void Set(long v, Int64 o) => o.Set(v);
         public static void VolatileSet(long v, Int64 o) => o.VolatileSet(v);
 
+        public virtual bool CompareAndSwap(long expect, long update) =>
+            Util.JavaUnsafe.compareAndSwapLong(this, ValueOffset, expect, update);
+
 
 
         public override bool Equals(object obj)
@@ -37,10 +41,27 @@ namespace system
             return ((int) v) ^ (int) (v >> 32);
         }
 
-        public override string ToString()
+        public override string ToString() => java.lang.Long.toString(Get());
+
+
+
+        // System.IEquatable<long>
+        public bool Equals(long v) => v == Get();
+
+        // System.IFormattable
+        public string ToString(string format, System.IFormatProvider provider)
         {
-            return java.lang.Long.toString(Get());
+            if (string.IsNullOrEmpty(format))
+                return ToString();
+            return ParseNumbers.FormatNumber((java.lang.String) (object) format, provider,
+                                             java.lang.Long.valueOf(Get()));
         }
+
+        public string ToString(string format) => ToString(format, null);
+
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+
 
         public static long OverflowAdd(long a, long b)
         {
@@ -124,6 +145,47 @@ namespace system
 
 
         //
+        // IConvertible
+        //
+
+
+
+        public virtual System.TypeCode GetTypeCode() => System.TypeCode.Int64;
+
+        bool System.IConvertible.ToBoolean(System.IFormatProvider provider)
+            => System.Convert.ToBoolean(Get());
+        char System.IConvertible.ToChar(System.IFormatProvider provider)
+            => System.Convert.ToChar(Get());
+        sbyte System.IConvertible.ToSByte(System.IFormatProvider provider)
+            => System.Convert.ToSByte(Get());
+        byte System.IConvertible.ToByte(System.IFormatProvider provider)
+            => System.Convert.ToByte(Get());
+        short System.IConvertible.ToInt16(System.IFormatProvider provider)
+            => System.Convert.ToInt16(Get());
+        ushort System.IConvertible.ToUInt16(System.IFormatProvider provider)
+            => System.Convert.ToUInt16(Get());
+        int System.IConvertible.ToInt32(System.IFormatProvider provider)
+            => System.Convert.ToInt32(Get());
+        uint System.IConvertible.ToUInt32(System.IFormatProvider provider)
+            => System.Convert.ToUInt32(Get());
+        long System.IConvertible.ToInt64(System.IFormatProvider provider)
+            => System.Convert.ToInt64(Get());
+        ulong System.IConvertible.ToUInt64(System.IFormatProvider provider)
+            => System.Convert.ToUInt64(Get());
+        float System.IConvertible.ToSingle(System.IFormatProvider provider)
+            => System.Convert.ToSingle(Get());
+        double System.IConvertible.ToDouble(System.IFormatProvider provider)
+            => System.Convert.ToDouble(Get());
+        System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
+            => System.Convert.ToDecimal(Get());
+        System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
+            => throw new System.InvalidCastException();
+        object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
+
+
+
+        //
         // InArray
         //
 
@@ -147,6 +209,9 @@ namespace system
             public override void Set(long v) => a[i] = v;
             public override void VolatileSet(long v) =>
                 Util.JavaUnsafe.putLongVolatile(a, Util.ElementOffset64(i), v);
+
+            public override bool CompareAndSwap(long expect, long update) =>
+                Util.JavaUnsafe.compareAndSwapLong(a, Util.ElementOffset64(i), expect, update);
         }
 
     }
@@ -167,7 +232,7 @@ namespace system
 
 
     #pragma warning disable 0659
-    public class UInt64 : Int64
+    public class UInt64 : Int64, System.IEquatable<ulong>
     {
 
         new public static UInt64 Box(long v) => new UInt64() { v = v };
@@ -176,11 +241,19 @@ namespace system
         public static void Set(long v, UInt64 o) => o.Set(v);
         public static void VolatileSet(long v, UInt64 o) => o.VolatileSet(v);
 
+        public override bool CompareAndSwap(long expect, long update) =>
+            throw new System.NotSupportedException();
+
         public override bool Equals(object obj)
         {
             var objUInt64 = obj as UInt64;
             return (objUInt64 != null && objUInt64.Get() == Get());
         }
+
+        // System.IEquatable<ulong>
+        public bool Equals(ulong v) => v == (ulong) Get();
+
+        public override System.TypeCode GetTypeCode() => System.TypeCode.UInt64;
 
         //public int CompareTo(ulong v) => java.lang.Long.compareUnsigned(Get(), (long) v);
 

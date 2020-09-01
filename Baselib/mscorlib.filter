@@ -16,9 +16,12 @@ System.ArithmeticException
 System.ArrayTypeMismatchException
 System.ApplicationException
 System.Comparison`*
+System.Convert
 System.Converter`*
 System.DateTime
+System.DBNull
 System.DllNotFoundException
+System.Empty
 System.EventArgs
 System.EventHandler
 System.EventHandler`*
@@ -49,6 +52,7 @@ System.Nullable`*
 System.SystemException
 System.OverflowException
 
+System.Collections.Comparer
 System.Collections.ICollection
 System.Collections.IDictionary
 System.Collections.IDictionaryEnumerator
@@ -147,6 +151,7 @@ System.Reflection.Assembly
 System.Reflection.AssemblyName
 System.Reflection.AssemblyNameFlags
 System.Reflection.AssemblyProductAttribute
+System.Reflection.Binder
 System.Reflection.BindingFlags
 System.Reflection.CallingConventions
 System.Reflection.IReflect
@@ -160,9 +165,12 @@ System.Reflection.TypeInfo
 System.Reflection.MemberFilter
 System.Reflection.Missing
 System.Reflection.ICustomAttributeProvider
+System.Reflection.InterfaceMapping
 System.Reflection.InvalidFilterCriteriaException
 System.Reflection.IReflectableType
+System.Reflection.ParameterModifier
 System.Reflection.TypeAttributes
+System.Reflection.TypeFilter
 System.Reflection.TargetParameterCountException
 System.Reflection.TargetInvocationException
 System.IRuntimeMethodInfo

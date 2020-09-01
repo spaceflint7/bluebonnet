@@ -5,6 +5,8 @@ namespace system.collections
     [java.attr.AsInterface]
     public abstract class IComparer : java.lang.Comparable, java.util.Comparator
     {
+        public abstract int Compare(object x, object y);
+
         [java.attr.RetainName]
         public int compareTo(object obj)
             => ((System.Collections.IComparer) this).Compare(this, obj);
@@ -26,6 +28,11 @@ namespace system.collections.generic
     [java.attr.AsInterface]
     public abstract class IComparer<T> : java.lang.Comparable, java.util.Comparator
     {
+        // a generic variance field is created for this abstract class,
+        // see also GenericUtil::CreateGenericVarianceField()
+
+        public abstract int Compare(T x, T y);
+
         [java.attr.RetainName]
         public int compareTo(object obj)
             => ((System.Collections.Generic.IComparer<T>) this).Compare((T) (object) this, (T) obj);
