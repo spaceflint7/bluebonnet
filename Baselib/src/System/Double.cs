@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class Double : system.ValueType, system.ValueMethod,
+    public class Double : system.ValueType, system.ValueMethod, java.lang.Cloneable,
+                          System.IComparable, System.IComparable<double>,
                           System.IConvertible, System.IEquatable<double>, System.IFormattable
     {
 
@@ -54,6 +55,29 @@ namespace system
                 return ToString();
             return ParseNumbers.FormatNumber(
                 (java.lang.String) (object) format, provider, java.lang.Double.valueOf(Get()));
+        }
+
+        public string ToString(string format) => ToString(format, null);
+
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is Double objDouble)
+                return CompareTo(objDouble.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<double>
+        public int CompareTo(double b)
+        {
+            var a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
         }
 
 
@@ -119,8 +143,6 @@ namespace system
         // IConvertible
         //
 
-
-
         public System.TypeCode GetTypeCode() => System.TypeCode.Double;
 
         bool System.IConvertible.ToBoolean(System.IFormatProvider provider)
@@ -150,11 +172,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 

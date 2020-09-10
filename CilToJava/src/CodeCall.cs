@@ -398,6 +398,9 @@ namespace SpaceFlint.CilToJava
                     parameters[0].Type = JavaType.ObjectType;
                 }
 
+                else
+                    CilMethod.FixNameForVirtualToStaticCall(tempMethod, callClass);
+
                 code.NewInstruction(0xB8 /* invokestatic */,
                                     new JavaType(0, 0, callClass.JavaName), tempMethod);
 

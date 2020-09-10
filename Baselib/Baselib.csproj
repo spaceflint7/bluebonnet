@@ -17,6 +17,7 @@
     <Compile Include="src\**\*.cs" />
     <CustomAdditionalCompileInputs Include="*.filter" />
     <Filter Include="*.filter" />
+    <Reference Include="System" />
   </ItemGroup>
   <!-- build Javalib.dll from the Java runtime library -->
   <Target Name="CheckJavaHome" BeforeTargets="BuildJavalib">

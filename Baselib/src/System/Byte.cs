@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class SByte : system.ValueType, system.ValueMethod,
+    public class SByte : system.ValueType, system.ValueMethod, java.lang.Cloneable,
+                         System.IComparable, System.IComparable<sbyte>,
                          System.IConvertible, System.IEquatable<sbyte>, System.IFormattable
     {
 
@@ -44,8 +45,31 @@ namespace system
         {
             if (string.IsNullOrEmpty(format))
                 return ToString();
-            return ParseNumbers.FormatNumber(
-                (java.lang.String) (object) format, provider, java.lang.Integer.valueOf(Get()));
+            return ParseNumbers.FormatNumber((java.lang.String) (object) format, provider,
+                                             java.lang.Integer.valueOf(Get()));
+        }
+
+        public string ToString(string format) => ToString(format, null);
+
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is SByte objSByte)
+                return CompareTo((sbyte) objSByte.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<sbyte>
+        public int CompareTo(sbyte b)
+        {
+            var a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
         }
 
 
@@ -76,8 +100,6 @@ namespace system
         // CodeNumber.Indirection methods
         //
 
-
-
         public int Get_U8() => (byte) Get();
         public int Get_I8() => (sbyte) Get();
         public void Set_I8(int v) => Set((int) ((byte) v | ((uint) Get() & (uint) 0xFFFFFF00)));
@@ -104,8 +126,6 @@ namespace system
         //
         // IConvertible
         //
-
-
 
         public virtual System.TypeCode GetTypeCode() => System.TypeCode.SByte;
 
@@ -136,11 +156,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 
@@ -173,7 +191,7 @@ namespace system
 
 
     #pragma warning disable 0659
-    public class Byte : SByte, System.IEquatable<byte>
+    public class Byte : SByte, System.IComparable<byte>, System.IEquatable<byte>
     {
 
         new public static Byte Box(int v) => new Byte() { v = (sbyte) v };
@@ -188,12 +206,26 @@ namespace system
             return (objByte != null && objByte.Get() == Get());
         }
 
-        // System.IEquatable<sbyte>
+        // System.IEquatable<byte>
         public bool Equals(byte v) => v == Get();
 
         public override System.TypeCode GetTypeCode() => System.TypeCode.Byte;
 
+        // System.IComparable
+        public override int CompareTo(object obj)
+        {
+            if (obj is Byte objByte)
+                return CompareTo((byte) objByte.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
 
+        // System.IComparable<byte>
+        public int CompareTo(byte v) => CompareTo((sbyte) Get(), (sbyte) v);
+
+        public static int CompareTo(sbyte a, sbyte b)
+            => a == b ? 0 : (a & 0xFF) < (b & 0xFF) ? -1 : 1;
 
 
         //

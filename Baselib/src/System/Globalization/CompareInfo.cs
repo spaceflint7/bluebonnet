@@ -45,6 +45,21 @@ namespace system.globalization {
         }
 
         //
+        // Equals
+        //
+
+        public override bool Equals(object other)
+            => other is CompareInfo otherCompareInfo && Name == otherCompareInfo.Name;
+
+        public override int GetHashCode() => Name.GetHashCode();
+
+        public string Name => CultureInfoRef.Name;
+
+        public override string ToString() => "CompareInfo - " + CultureInfoRef.ToString();
+
+
+
+        //
         // GetCompareInfo
         //
 
@@ -56,12 +71,6 @@ namespace system.globalization {
 
         public static CompareInfo InvariantCompareInfo
             => system.globalization.CultureInfo.InvariantCulture.CompareInfo;
-
-        //
-        //
-        //
-
-        public override string ToString() => "CompareInfo - " + CultureInfoRef.ToString();
 
 
 
@@ -94,6 +103,166 @@ namespace system.globalization {
             }
             return true;
         }
+
+
+
+        //
+        // Compare (public API)
+        //
+
+        public virtual int Compare(string string1, string string2)
+            => CompareString(string1, 0, -1, string2, 0, -1, CompareOptions.None);
+
+        public virtual int Compare(string string1, string string2, CompareOptions options)
+            => CompareString(string1, 0, -1, string2, 0, -1, options);
+
+        public virtual int Compare(string string1, int offset1, string string2, int offset2)
+            => CompareString(string1, offset1, -1, string2, offset2, -1, CompareOptions.None);
+
+        public virtual int Compare(string string1, int offset1, string string2, int offset2,
+                                   CompareOptions options)
+            => CompareString(string1, offset1, -1, string2, offset2, -1, options);
+
+        public virtual int Compare(string string1, int offset1, int length1,
+                                   string string2, int offset2, int length2)
+        {
+            if (length1 < 0 || length2 < 0)
+                throw new ArgumentOutOfRangeException();
+            return CompareString(string1, offset1, length1, string2, offset2, length2, CompareOptions.None);
+        }
+
+        public virtual int Compare(string string1, int offset1, int length1,
+                                   string string2, int offset2, int length2,
+                                   CompareOptions options)
+        {
+            if (length1 < 0 || length2 < 0)
+                throw new ArgumentOutOfRangeException();
+            return CompareString(string1, offset1, length1, string2, offset2, length2, options);
+        }
+
+        //
+        // CompareString (internal method)
+        //
+
+        private int CompareString(string string1, int offset1, int length1,
+                                  string string2, int offset2, int length2,
+                                  CompareOptions options)
+        {
+            if (offset1 < 0 || offset2 < 0)
+                throw new ArgumentOutOfRangeException();
+            int endOffset1 = GetEndOffset(string1, offset1, length1);
+            int endOffset2 = GetEndOffset(string2, offset2, length2);
+
+            if (string1 == null)
+                return (string2 == null) ? 0 : -1;
+            else if (string2 == null)
+                return 1;
+
+            if ((options & (CompareOptions.Ordinal | CompareOptions.OrdinalIgnoreCase)) != 0)
+            {
+                bool ignoreCase;
+                if (options == CompareOptions.Ordinal)
+                    ignoreCase = false;
+                else if (options == CompareOptions.OrdinalIgnoreCase)
+                    ignoreCase = true;
+                else
+                    throw new System.ArgumentException();
+
+                return CompareStringOrdinal(string1, offset1, endOffset1,
+                                            string2, offset2, endOffset2,
+                                            ignoreCase);
+            }
+            else
+            {
+                return CompareStringCulture(string1, offset1, endOffset1,
+                                            string2, offset2, endOffset2,
+                                            CompareOptionsToCollatorMask(options));
+            }
+
+            static int GetEndOffset(string str, int ofs, int len)
+            {
+                if (str == null)
+                {
+                    if (ofs == 0 && len <= 0)
+                        return -1;
+                }
+                else
+                {
+                    int strLen = ((java.lang.String) (object) str).length();
+                    if (len == -1)
+                    {
+                        if (ofs < strLen)
+                            return strLen;
+                    }
+                    else if ((ofs += len) <= strLen)
+                        return ofs;
+                }
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        //
+        // CompareStringOrdinal (internal method)
+        //
+
+        private static int CompareStringOrdinal(string string1, int index1, int endIndex1,
+                                                string string2, int index2, int endIndex2,
+                                                bool ignoreCase)
+        {
+            var str1 = (java.lang.String) (object)
+                (((java.lang.String) (object) string1).substring(index1, endIndex1));
+            var str2 = (java.lang.String) (object)
+                (((java.lang.String) (object) string2).substring(index2, endIndex2));
+            return ignoreCase ? str1.compareToIgnoreCase(str2) : str1.compareTo(str2);
+        }
+
+        //
+        // CompareStringCulture (internal method)
+        //
+
+        private int CompareStringCulture(string string1, int index1, int endIndex1,
+                                         string string2, int index2, int endIndex2,
+                                         uint mask)
+        {
+            // create iterators for the two strings. see also IndexOfStringCulture
+
+            var iterator1 = new Iterator(this, mask,
+                                         new java.text.StringCharacterIterator(
+                                             string1, index1, endIndex1, index1));
+
+            var iterator2 = new Iterator(this, mask,
+                                         new java.text.StringCharacterIterator(
+                                             string2, index2, endIndex2, index2));
+
+            for (;;)
+            {
+                var order1 = iterator1.Next();
+                var order2 = iterator2.Next();
+
+                if (order1 == null)
+                    return (order2 == null) ? 0 : -1;
+                else if (order2 == null)
+                    return 1;
+
+                int n1 = order1.Length;
+                int n2 = order2.Length;
+                int n = (n1 <= n2) ? n1 : n2;
+                for (int i = 0; i < n; i++)
+                {
+                    int o1 = order1[i];
+                    int o2 = order2[i];
+                    if (o1 != o2)
+                        return o1 - o2;
+                    if (o1 == 0)
+                        break;
+                }
+
+                if (n1 != n2)
+                    return n1 - n2;
+            }
+        }
+
+
 
         //
         // IndexOf (char, public API)
@@ -255,12 +424,12 @@ namespace system.globalization {
         //
 
         public static int IndexOfString(string source, string value, int startIndex,
-                                      CompareOptions options, CompareInfo compareInfo)
+                                        CompareOptions options, CompareInfo compareInfo)
         {
             ThrowHelper.ThrowIfNull(source);
 
             int sourceLength = ((java.lang.String) (object) source).length();
-            if (startIndex >= sourceLength)
+            if (startIndex < 0 || startIndex >= sourceLength)
                 throw new System.ArgumentOutOfRangeException();
 
             if (options == CompareOptions.Ordinal)
@@ -620,7 +789,7 @@ namespace system.globalization {
             int sourceLength = ((java.lang.String) (object) source).length();
             if (! haveStartIndex)
                 startIndex = sourceLength - 1;
-            else if (startIndex >= sourceLength)
+            else if (startIndex < 0 || startIndex >= sourceLength)
                 throw new System.ArgumentOutOfRangeException();
 
             if (options == CompareOptions.Ordinal)
@@ -1359,7 +1528,7 @@ namespace system.globalization {
                     else if (small.sequence[S] == 0)
                     {
                         // if the small sequence ends before the large sequence,
-                        // this cannot be a made.  this is to correctly emulate
+                        // this cannot be a match.  this is to correctly emulate
                         // the .Net comparison, where, for example, a search for
                         // just "A" cannot match the (AE) symbol.
 

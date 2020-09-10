@@ -3,7 +3,8 @@ namespace system
 {
 
     public class Boolean : system.ValueType, system.ValueMethod, java.lang.Cloneable,
-                           System.IConvertible
+                           System.IComparable, System.IComparable<bool>,
+                           System.IConvertible, System.IEquatable<bool>
     {
 
         [java.attr.RetainType] protected int v;
@@ -36,6 +37,33 @@ namespace system
 
         public override string ToString() => Get() != 0 ? "True" : "False";
 
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+
+
+        // System.IEquatable<bool>
+        public bool Equals(bool v) => (Get() != 0 ? v : (! v));
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is Boolean objBoolean)
+                return CompareTo(objBoolean.Get() != 0 ? true : false);
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<bool>
+        public int CompareTo(bool b)
+        {
+            return (Get() == 0) ? (b ? -1 : 0)
+                                : (b ? 0  : 1);
+        }
+
+
 
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((Boolean) into).Set(Get());
@@ -63,8 +91,6 @@ namespace system
         // CodeNumber.Indirection methods
         //
 
-
-
         public int Get_U8() => (byte) Get();
         public int Get_I8() => Get();
         public void Set_I8(int v) => Set(v);
@@ -91,8 +117,6 @@ namespace system
         //
         // IConvertible
         //
-
-
 
         public System.TypeCode GetTypeCode() => System.TypeCode.Boolean;
 
@@ -123,11 +147,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 

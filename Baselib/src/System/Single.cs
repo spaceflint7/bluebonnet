@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class Single : system.ValueType, system.ValueMethod,
+    public class Single : system.ValueType, system.ValueMethod, java.lang.Cloneable,
+                          System.IComparable, System.IComparable<float>,
                           System.IConvertible, System.IEquatable<float>, System.IFormattable
     {
 
@@ -44,7 +45,7 @@ namespace system
 
 
 
-        // System.IEquatable<double>
+        // System.IEquatable<float>
         public bool Equals(float v) => v == Get();
 
         // System.IFormattable
@@ -54,6 +55,29 @@ namespace system
                 return ToString();
             return ParseNumbers.FormatNumber(
                 (java.lang.String) (object) format, provider, java.lang.Float.valueOf(Get()));
+        }
+
+        public string ToString(string format) => ToString(format, null);
+
+        public string ToString(System.IFormatProvider provider) => ToString();
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is Single objSingle)
+                return CompareTo(objSingle.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<float>
+        public int CompareTo(float b)
+        {
+            var a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
         }
 
 
@@ -84,8 +108,6 @@ namespace system
         // IConvertible
         //
 
-
-
         public System.TypeCode GetTypeCode() => System.TypeCode.Single;
 
         bool System.IConvertible.ToBoolean(System.IFormatProvider provider)
@@ -115,11 +137,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 

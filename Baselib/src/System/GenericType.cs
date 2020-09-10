@@ -121,18 +121,27 @@ namespace system
                 if (genericObject.TryCast(castToType) != null)
                     return obj;
                 if (obj is system.Array.ProxySyncRoot objArray)
-                {
-                    var proxy = Array.GetProxy(objArray.SyncRoot, castToType, false);
-                    if (proxy != null)
-                        return proxy;
-                }
+                    obj = objArray.SyncRoot;
             }
-            else
+
+            if (obj != null)
             {
+                // handle the cases where ShouldCallGenericCast in GenericUtil
+                // identifies an interface that should be implemented by an
+                // array object, or a string
                 var proxy = Array.GetProxy(obj, castToType, false);
                 if (proxy != null)
                     return proxy;
+
+                // check if the object (which might not be array or string)
+                // can actually be cast to the target type
+                if (    (! castToType.IsGenericType)
+                     && castToType is RuntimeType castToRuntimeType
+                     && castToRuntimeType.JavaClassForArray()
+                                .isAssignableFrom(((java.lang.Object) obj).getClass()))
+                    return obj;
             }
+
             if (@throw)
                 ThrowInvalidCastException(obj, castToType);
             return null;

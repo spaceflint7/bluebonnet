@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class Char : system.ValueType, system.ValueMethod,
+    public class Char : system.ValueType, system.ValueMethod, java.lang.Cloneable,
+                        System.IComparable, System.IComparable<char>,
                         System.IConvertible, System.IEquatable<char>
     {
 
@@ -41,12 +42,26 @@ namespace system
 
         public override string ToString() => java.lang.String.valueOf((char) Get());
 
-        /*public string ToString(IFormatProvider provider)
-        {
-            return java.lang.String.valueOf(Get(this));
-        }*/
+        public string ToString(System.IFormatProvider provider) => ToString();
 
         public static string ToString(char c) => java.lang.String.valueOf(c);
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is Char objChar)
+                return CompareTo(objChar.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<char>
+        public int CompareTo(char b) => Get() - ((int) b);
+
+
 
         //public static char ToUpper(char c, system.globalization.CultureInfo cultureInfo)
 
@@ -66,8 +81,7 @@ namespace system
 
         static char StringCharAt(string str, int idx)
         {
-            if (str == null)
-                throw new System.ArgumentNullException();
+            ThrowHelper.ThrowIfNull(str);
             if ((uint) idx >= (uint) str.Length)
                 throw new System.ArgumentOutOfRangeException();
             return str[idx];
@@ -97,8 +111,6 @@ namespace system
         // CodeNumber.Indirection methods
         //
 
-
-
         public int Get_U8() => (byte) Get();
         public int Get_I8() => Get();
         public void Set_I8(int v) => Set(v);
@@ -121,8 +133,6 @@ namespace system
         //
         // IConvertible
         //
-
-
 
         public System.TypeCode GetTypeCode() => System.TypeCode.Char;
 
@@ -153,11 +163,9 @@ namespace system
         System.Decimal System.IConvertible.ToDecimal(System.IFormatProvider provider)
             => System.Convert.ToDecimal(Get());
         System.DateTime System.IConvertible.ToDateTime(System.IFormatProvider provider)
-            => throw new System.InvalidCastException(Environment.GetResourceString("InvalidCast_FromTo_Int32_DateTime"));
-        string System.IConvertible.ToString(System.IFormatProvider provider)
-            => ToString();
+            => throw new System.InvalidCastException();
         object System.IConvertible.ToType(System.Type type, System.IFormatProvider provider)
-            => null;//System.Convert.DefaultToType((System.IConvertible) this, type, provider);
+            => system.Convert.DefaultToType((System.IConvertible) this, type, provider);
 
 
 

@@ -16,6 +16,9 @@ namespace system.runtime.compilerservices {
             return 0;
         }
 
+        public static int GetHashCode(object o)
+            => (o != null) ? o.GetHashCode() : 0;
+
     }
 
 }

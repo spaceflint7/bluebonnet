@@ -1427,10 +1427,10 @@ namespace system
                 (exc) => new System.IndexOutOfRangeException(exc.getMessage())
             );
 
-            system.Util.DefineException(
+            /*system.Util.DefineException(
                 (java.lang.Class) typeof(java.util.ConcurrentModificationException),
                 (exc) => new System.InvalidOperationException(exc.getMessage())
-            );
+            );*/
 
             system.Util.DefineException(
                 (java.lang.Class) typeof(java.lang.ArrayStoreException),

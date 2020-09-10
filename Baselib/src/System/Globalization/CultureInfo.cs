@@ -8,6 +8,7 @@ namespace system.globalization {
 
         [java.attr.RetainType] java.util.Locale JavaLocale;
         [java.attr.RetainType] volatile CompareInfo CompareInfoRef;
+        [java.attr.RetainType] volatile TextInfo TextInfoRef;
 
 
 
@@ -42,6 +43,7 @@ namespace system.globalization {
             }
             JavaLocale = locale;
             CompareInfoRef = new CompareInfo(this, JavaLocale);
+            TextInfoRef = new TextInfo(this, JavaLocale);
         }
 
 
@@ -91,6 +93,8 @@ namespace system.globalization {
 
 
         public virtual CompareInfo CompareInfo => CompareInfoRef;
+
+        public virtual TextInfo TextInfo => TextInfoRef;
 
         public static CultureInfo CurrentCulture
             => system.threading.Thread.CurrentThread.CurrentCulture;

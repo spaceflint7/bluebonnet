@@ -2,7 +2,7 @@
 namespace system
 {
 
-    public class Int32 : system.ValueType, system.ValueMethod,
+    public class Int32 : system.ValueType, system.ValueMethod, java.lang.Cloneable,
                          System.IComparable, System.IComparable<int>,
                          System.IConvertible, System.IEquatable<int>, System.IFormattable
     {
@@ -58,20 +58,22 @@ namespace system
 
         public string ToString(System.IFormatProvider provider) => ToString();
 
+
+
         // System.IComparable
         public virtual int CompareTo(object obj)
         {
-            if (object.ReferenceEquals(obj, null))
-                return 1;
             if (obj is Int32 objInt32)
                 return CompareTo((int) objInt32.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
             throw new System.ArgumentException();
         }
 
         // System.IComparable<int>
         public int CompareTo(int b)
         {
-            int a = Get();
+            var a = Get();
             return (a < b ? -1 : a > b ? 1 : 0);
         }
 
@@ -151,8 +153,6 @@ namespace system
         // CodeNumber.Indirection methods
         //
 
-
-
         public int Get_U8() => (byte) Get();
         public int Get_I8() => (sbyte) Get();
         public void Set_I8(int v) => Set((int) ((byte) v | ((uint) Get() & (uint) 0xFFFFFF00)));
@@ -175,8 +175,6 @@ namespace system
         //
         // IConvertible
         //
-
-
 
         public virtual System.TypeCode GetTypeCode() => System.TypeCode.Int32;
 
@@ -273,10 +271,10 @@ namespace system
         // System.IComparable
         public override int CompareTo(object obj)
         {
-            if (object.ReferenceEquals(obj, null))
-                return 1;
             if (obj is UInt32 objUInt32)
                 return CompareTo((uint) objUInt32.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
             throw new System.ArgumentException();
         }
 

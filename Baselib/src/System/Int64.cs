@@ -2,7 +2,8 @@
 namespace system
 {
 
-    public class Int64 : system.ValueType, system.ValueMethod,
+    public class Int64 : system.ValueType, system.ValueMethod, java.lang.Cloneable,
+                         System.IComparable, System.IComparable<long>,
                          System.IConvertible, System.IEquatable<long>, System.IFormattable
     {
 
@@ -60,6 +61,25 @@ namespace system
         public string ToString(string format) => ToString(format, null);
 
         public string ToString(System.IFormatProvider provider) => ToString();
+
+
+
+        // System.IComparable
+        public virtual int CompareTo(object obj)
+        {
+            if (obj is Int64 objInt64)
+                return CompareTo((long) objInt64.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
+
+        // System.IComparable<long>
+        public int CompareTo(long b)
+        {
+            var a = Get();
+            return (a < b ? -1 : a > b ? 1 : 0);
+        }
 
 
 
@@ -123,8 +143,6 @@ namespace system
         // CodeNumber.Indirection methods
         //
 
-
-
         public int Get_U8() => (byte) Get();
         public int Get_I8() => (sbyte) Get();
         public void Set_I8(int v) => Set((int) ((byte) v | ((ulong) Get() & (ulong) 0xFFFFFFFFFFFFFF00)));
@@ -147,8 +165,6 @@ namespace system
         //
         // IConvertible
         //
-
-
 
         public virtual System.TypeCode GetTypeCode() => System.TypeCode.Int64;
 
@@ -227,12 +243,14 @@ namespace system
         public static int Size => 8;
 
         public static readonly IntPtr Zero = new IntPtr(0);
+
+        new public static IntPtr Box(long v) => new IntPtr(v);
     }
 
 
 
     #pragma warning disable 0659
-    public class UInt64 : Int64, System.IEquatable<ulong>
+    public class UInt64 : Int64, System.IComparable<ulong>, System.IEquatable<ulong>
     {
 
         new public static UInt64 Box(long v) => new UInt64() { v = v };
@@ -255,8 +273,17 @@ namespace system
 
         public override System.TypeCode GetTypeCode() => System.TypeCode.UInt64;
 
-        //public int CompareTo(ulong v) => java.lang.Long.compareUnsigned(Get(), (long) v);
+        // System.IComparable
+        public override int CompareTo(object obj)
+        {
+            if (obj is UInt64 objUInt64)
+                return CompareTo((ulong) objUInt64.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
+            throw new System.ArgumentException();
+        }
 
+        // System.IComparable<ulong>
         public int CompareTo(ulong v) => CompareTo(Get(), (long) v);
 
         public static int CompareTo(long a, long b)
@@ -366,6 +393,21 @@ namespace system
                 Util.JavaUnsafe.putLongVolatile(a, Util.ElementOffset64(i), v);
         }
 
+    }
+
+
+
+    public class UIntPtr : UInt64
+    {
+
+        public UIntPtr(int v) => this.v = v;
+        public UIntPtr(long v) => this.v = v;
+
+        public static int Size => 8;
+
+        public static readonly UIntPtr Zero = new UIntPtr(0);
+
+        new public static UIntPtr Box(long v) => new UIntPtr(v);
     }
 
 }

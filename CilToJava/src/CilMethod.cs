@@ -644,6 +644,29 @@ namespace SpaceFlint.CilToJava
 
 
 
+        public static void FixNameForVirtualToStaticCall(JavaMethodRef method, CilType callClass)
+        {
+            // this method is called from CodeCall.ConvertVirtualToStaticCall,
+            // which converts a virtual call to a static call by inserting an
+            // initial 'this' parameter.
+            // if the target method was altered by AppendMethodNameSuffix,
+            // then we also have to insert the name for that initial 'this'.
+
+            string name = method.Name;
+            int idx = name.IndexOf(CilMain.OPEN_PARENS);
+            if (idx != -1)
+            {
+                string newName = name.Substring(0, idx)
+                               + CilMain.OPEN_PARENS
+                               + callClass.JavaName.Replace('.', '-')
+                               + CilMain.CLOSE_PARENS
+                               + name.Substring(idx);
+                method.Name = newName;
+            }
+        }
+
+
+
         internal static bool CompareMethods(MethodDefinition m1, MethodDefinition m2)
         {
             if (m1.Name != m2.Name)

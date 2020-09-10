@@ -267,12 +267,22 @@ namespace SpaceFlint.CilToJava
             {
                 var dataType = CilType.From(typeRef);
 
-                var stackTop1 = (CilType) code.StackMap.PopStack(CilMain.Where);
-                var stackTop2 = (CilType) code.StackMap.PopStack(CilMain.Where);
-                if (CodeSpan.LoadStore(false, stackTop2, null, dataType, code))
+                var valueType = (CilType) code.StackMap.PopStack(CilMain.Where);
+                var intoType = (CilType) code.StackMap.PopStack(CilMain.Where);
+                if (CodeSpan.LoadStore(false, intoType, null, dataType, code))
                     return;
-                code.StackMap.PushStack(stackTop2);
-                code.StackMap.PushStack(stackTop1);
+
+                if (    (! dataType.IsReference)
+                     && intoType is BoxedType intoBoxedType
+                     && dataType.PrimitiveType == intoBoxedType.UnboxedType.PrimitiveType)
+                {
+                    // 'stobj primitive' with a primitive value on the stack
+                    intoBoxedType.SetValueOV(code);
+                    return;
+                }
+
+                code.StackMap.PushStack(intoType);
+                code.StackMap.PushStack(valueType);
 
                 GenericUtil.ValueCopy(dataType, code, true);
                 code.StackMap.PopStack(CilMain.Where);

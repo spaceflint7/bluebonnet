@@ -1,6 +1,5 @@
 
 using System;
-using System.Reflection;
 using System.Globalization;
 using System.Runtime.Serialization;
 
@@ -11,64 +10,92 @@ namespace system.reflection
     public class RuntimeAssembly : System.Reflection.Assembly, ISerializable
     {
 
-        private java.security.CodeSource JavaCodeSource;
+        [java.attr.RetainType] private java.security.ProtectionDomain JavaDomain;
+        private System.Reflection.Module[] theModule;
+        private static java.util.concurrent.ConcurrentHashMap _DomainToAssemblyMap;
 
         //
         //
         //
 
-        protected RuntimeAssembly(java.security.CodeSource codeSource)
+        private RuntimeAssembly(java.security.ProtectionDomain domain)
         {
-            JavaCodeSource = codeSource;
+            JavaDomain = domain;
         }
 
         //
-        //
+        // GetAssemblyForDomain
         //
 
-        public static RuntimeAssembly GetExecutingAssembly(ref system.threading.StackCrawlMark stackMark)
+        public static System.Reflection.Assembly GetAssemblyForDomain(
+                                                java.security.ProtectionDomain domain)
         {
+            if (domain == null)
+                throw new DllNotFoundException();
+            var map = System.Threading.LazyInitializer
+                            .EnsureInitialized<java.util.concurrent.ConcurrentHashMap>(
+                                    ref _DomainToAssemblyMap);
+            var assembly = (RuntimeAssembly) map.get(domain);
+            if (assembly == null)
+            {
+                var newAssembly = new RuntimeAssembly(domain);
+                assembly = (RuntimeAssembly)
+                                map.putIfAbsent(domain, newAssembly) ?? newAssembly;
+            }
+            return assembly;
+        }
+
+        //
+        // GetExecutingAssembly
+        //
+
+        public static RuntimeAssembly GetExecutingAssembly(
+                                            ref system.threading.StackCrawlMark stackMark)
+        {
+            java.security.ProtectionDomain domain = null;
             var stackTrace = (new java.lang.Throwable()).getStackTrace();
             foreach (var stackElem in stackTrace)
             {
                 var clsnm = stackElem.getClassName();
                 if (! clsnm.StartsWith("system.reflection."))
-                    return GetAssemblyForClass(java.lang.Class.forName(clsnm));
-            }
-            throw new DllNotFoundException();
-        }
-
-        static RuntimeAssembly GetAssemblyForClass(java.lang.Class cls)
-        {
-            var jar = cls?.getProtectionDomain()?.getCodeSource();
-            if (jar != null)
-            {
-                var map = System.Threading.LazyInitializer
-                                .EnsureInitialized<java.util.concurrent.ConcurrentHashMap>(
-                                        ref _CodeSourceToAssemblyMap);
-                var assembly = (RuntimeAssembly) map.get(jar);
-                if (assembly == null)
                 {
-                    var newAssembly = new RuntimeAssembly(jar);
-                    assembly = (RuntimeAssembly) map.putIfAbsent(jar, newAssembly) ?? newAssembly;
+                    domain = java.lang.Class.forName(clsnm)?.getProtectionDomain();
+                    break;
                 }
-                return assembly;
             }
-            throw new DllNotFoundException();
+            return (RuntimeAssembly) GetAssemblyForDomain(domain);
         }
 
-        private static java.util.concurrent.ConcurrentHashMap _CodeSourceToAssemblyMap;
+        //
+        // GetModules
+        //
+
+        public override System.Reflection.Module[] GetModules(bool getResourceModules)
+        {
+            return System.Threading.LazyInitializer
+                    .EnsureInitialized<System.Reflection.Module[]>(ref theModule, () =>
+            {
+                var mod = (System.Reflection.Module) (object)
+                                (new RuntimeModule() { JavaDomain = JavaDomain });
+                return new System.Reflection.Module[] { mod };
+            });
+        }
 
         //
-        //
+        // GetName
         //
 
         public override System.Reflection.AssemblyName GetName(bool copiedName)
         {
-            var name = new System.Reflection.AssemblyName(JavaCodeSource.getLocation().getFile());
+            var name = new System.Reflection.AssemblyName(
+                                JavaDomain.getCodeSource().getLocation().getFile());
             name.Version = new Version();
             return name;
         }
+
+        //
+        // nInit
+        //
 
         [java.attr.RetainName]
         public static void nInit(System.Reflection.AssemblyName thisAssemblyName,

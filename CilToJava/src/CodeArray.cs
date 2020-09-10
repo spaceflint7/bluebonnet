@@ -272,7 +272,8 @@ namespace SpaceFlint.CilToJava
             else
             {
                 if (    elemType.PrimitiveType == TypeCode.Int16
-                     && arrayType.PrimitiveType == TypeCode.Char)
+                     && (    arrayType.PrimitiveType == TypeCode.Char
+                          || arrayType.PrimitiveType == TypeCode.UInt16))
                 {
                     // ldelem.i2 with a char[] array, should be 'caload' not 'saload'
                     elemType = arrayType.AdjustRank(-arrayType.ArrayRank);
@@ -358,7 +359,8 @@ namespace SpaceFlint.CilToJava
             else
             {
                 if (    elemType.PrimitiveType == TypeCode.Int16
-                     && arrayType.PrimitiveType == TypeCode.Char)
+                     && (    arrayType.PrimitiveType == TypeCode.Char
+                          || arrayType.PrimitiveType == TypeCode.UInt16))
                 {
                     // stelem.i2 with a char[] array, should be 'castore' not 'sastore'
                     elemType = arrayType.AdjustRank(-arrayType.ArrayRank);

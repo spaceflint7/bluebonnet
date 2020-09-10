@@ -2,7 +2,7 @@
 namespace system
 {
 
-    public class Int16 : system.ValueType, system.ValueMethod,
+    public class Int16 : system.ValueType, system.ValueMethod, java.lang.Cloneable,
                          System.IComparable, System.IComparable<short>,
                          System.IConvertible, System.IEquatable<short>, System.IFormattable
     {
@@ -58,17 +58,17 @@ namespace system
         // System.IComparable
         public virtual int CompareTo(object obj)
         {
-            if (object.ReferenceEquals(obj, null))
-                return 1;
             if (obj is Int16 objInt16)
                 return CompareTo((short) objInt16.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
             throw new System.ArgumentException();
         }
 
         // System.IComparable<short>
         public int CompareTo(short b)
         {
-            int a = Get();
+            var a = Get();
             return (a < b ? -1 : a > b ? 1 : 0);
         }
 
@@ -215,10 +215,10 @@ namespace system
         // System.IComparable
         public override int CompareTo(object obj)
         {
-            if (object.ReferenceEquals(obj, null))
-                return 1;
             if (obj is UInt16 objUInt16)
                 return CompareTo((ushort) objUInt16.Get());
+            else if (object.ReferenceEquals(obj, null))
+                return 1;
             throw new System.ArgumentException();
         }
 

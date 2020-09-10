@@ -748,9 +748,15 @@ namespace SpaceFlint.CilToJava
                         }
                     }
                 }
-                else
+
+                stackMap.ResetLocalsInFrame((ushort) inst.Offset, resetLocals);
+
+                if (inst.OpCode.Code >= Code.Ceq && inst.OpCode.Code <= Code.Clt_Un)
                 {
-                    stackMap.ResetLocalsInFrame((ushort) inst.Offset, resetLocals);
+                    // also reset the additional frame created while processing
+                    // 'ceq'-type instructions, see also method Compare() above
+                    stackMap.ResetLocalsInFrame(
+                                        (ushort) (inst.Offset + 1), resetLocals);
                 }
 
                 inst = inst.Next;

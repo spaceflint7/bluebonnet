@@ -93,5 +93,3 @@ Here are some known differences, deficiencies and incompatibilities of the Blueb
 - Standard numeric format strings are supported, but a custom format, or an `IFormatProvider` which also implements `NumberFormatInfo` will cause `ToString` functions to throw an exception.
 
 - Non-ordinal, culture-dependant string comparisons and casing are not 100% same, because of differences between Windows NLS and the `java.text` package.
-
-- `String` is not castable to `IConvertible` or to the non-generic `IComparable` interface.

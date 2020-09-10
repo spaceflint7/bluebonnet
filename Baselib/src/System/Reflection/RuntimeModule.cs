@@ -4,10 +4,38 @@ using System.Runtime.InteropServices;
 namespace system.reflection
 {
 
-    public abstract class Module { }
-
-    public sealed class RuntimeModule
+    public abstract class Module
     {
+        public abstract System.Type[] GetTypes();
+    }
+
+    public sealed class RuntimeModule : Module
+    {
+        [java.attr.RetainType] public java.security.ProtectionDomain JavaDomain;
+
+        public override System.Type[] GetTypes()
+        {
+            for (;;)
+            {
+                try
+                {
+                    var types = new System.Collections.Generic.List<System.Type>();
+
+                    var iterator = AppDomain.CurrentDomain.GetAllClasses().iterator();
+                    while (iterator.hasNext())
+                    {
+                        var cls = (java.lang.Class) iterator.next();
+                        if (cls.getProtectionDomain() == JavaDomain)
+                            types.Add(system.RuntimeType.GetType(cls));
+                    }
+
+                    return types.ToArray();
+                }
+                catch (java.util.ConcurrentModificationException)
+                {
+                }
+            }
+        }
 
         public MetadataImport MetadataImport => _MetadataImport;
         public StructLayoutAttribute StructLayoutAttribute => _StructLayoutAttribute;

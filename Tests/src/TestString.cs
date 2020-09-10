@@ -6,19 +6,102 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Tests
 {
     [TestClass]
-    public class TestCompareInfo : BaseTest
+    public class TestString : BaseTest
     {
 
         public override void TestMain()
         {
-            TestIndexOf1();
+            TestSplit();
+            TestIndexOf();
+            TestCompare();
+            TestCast("Test");
         }
 
-        //
-        //
-        //
 
-        static void TestIndexOf1()
+
+        void TestSplit()
+        {
+            // This example demonstrates the String() methods that use
+            // the StringSplitOptions enumeration.
+            string s1 = ",ONE,,TWO,,,THREE,,";
+            string s2 = "[stop]" +
+                        "ONE[stop][stop]" +
+                        "TWO[stop][stop][stop]" +
+                        "THREE[stop][stop]";
+            char[] charSeparators = new char[] {','};
+            string[] stringSeparators = new string[] {"[stop]"};
+            string[] result;
+            // ------------------------------------------------------------------------------
+            // Split a string delimited by characters.
+            // ------------------------------------------------------------------------------
+            // Display the original string and delimiter characters.
+            Console.WriteLine("String = \"{0}\"   Delimiter = '{1}'", s1, charSeparators[0]);
+
+            // Split a string delimited by characters and return all elements.
+            Console.Write("Split by char, omit=0: ");
+            result = s1.Split(charSeparators, StringSplitOptions.None);
+            Show(result);
+
+            // Split a string delimited by characters and return all non-empty elements.
+            Console.Write("Split by char, omit=1: ");
+            result = s1.Split(charSeparators, StringSplitOptions.RemoveEmptyEntries);
+            Show(result);
+
+            // Split the original string into the string and empty string before the
+            // delimiter and the remainder of the original string after the delimiter.
+            Console.Write("Split by char, omit=0, lim=2: ");
+            result = s1.Split(charSeparators, 2, StringSplitOptions.None);
+            Show(result);
+
+            // Split the original string into the string after the delimiter and the
+            // remainder of the original string after the delimiter.
+            Console.Write("Split by char, omit=1, lim=2: ");
+            result = s1.Split(charSeparators, 2, StringSplitOptions.RemoveEmptyEntries);
+            Show(result);
+
+            // ------------------------------------------------------------------------------
+            // Split a string delimited by another string.
+            // ------------------------------------------------------------------------------
+            // Display the original string and delimiter string.
+            Console.WriteLine("String = \"{0}\"   Delimiter = \"{1}\"", s2, stringSeparators[0]);
+
+            // Split a string delimited by another string and return all elements.
+            Console.Write("Split by str, omit=0: ");
+            result = s2.Split(stringSeparators, StringSplitOptions.None);
+            Show(result);
+
+            // Split the original string at the delimiter and return all non-empty elements.
+            Console.Write("Split by str, omit=1: ");
+            result = s2.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries);
+            Show(result);
+
+            // Split the original string into the empty string before the
+            // delimiter and the remainder of the original string after the delimiter.
+            Console.Write("Split by str, omit=0, lim=2: ");
+            result = s2.Split(stringSeparators, 2, StringSplitOptions.None);
+            Show(result);
+
+            // Split the original string into the string after the delimiter and the
+            // remainder of the original string after the delimiter.
+            Console.Write("Split by str, omit=1, lim=2: ");
+            result = s2.Split(stringSeparators, 2, StringSplitOptions.RemoveEmptyEntries);
+            Show(result);
+
+            // Display the array of separated strings using a local function
+            void Show(string[] entries)
+            {
+                Console.Write("{0} results: ", entries.Length);
+                foreach (string entry in entries)
+                {
+                    Console.Write("<{0}>", entry);
+                }
+                Console.WriteLine();
+            }
+        }
+
+
+
+        static void TestIndexOf()
         {
             // based on examples in documentation page for
             // System.Globalization.CompareInfo.IndexOf methods
@@ -109,14 +192,44 @@ namespace Tests
             PrintMarker( "            Ü : ", -1, myComp.LastIndexOf( myStr, 'Ü', iS, CompareOptions.IgnoreCase ) );
             PrintMarker( "            ü : ", -1, myComp.LastIndexOf( myStr, 'ü', iS, CompareOptions.IgnoreCase ) );
             Console.WriteLine();
+
+            static void PrintMarker( String Prefix, int First, int Last )  {
+                if (First > -1) Console.Write($"\t\tFirst({First})");
+                if (Last > -1)  Console.Write($"\t\tLast({First})");
+                if (First < 0 && Last < 0)
+                                Console.Write($"\t\tNone\t");
+            }
         }
 
-        public static void PrintMarker( String Prefix, int First, int Last )  {
-            if (First > -1) Console.Write($"\t\tFirst({First})");
-            if (Last > -1)  Console.Write($"\t\tLast({First})");
-            if (First < 0 && Last < 0)
-                            Console.Write($"\t\tNone\t");
+
+
+        void TestCompare()
+        {
+            // Defines the strings to compare.
+            String myStr1 = "My Uncle Bill's clients";
+            String myStr2 = "My uncle bill's clients";
+
+            // Creates a CompareInfo that uses the InvariantCulture.
+            CompareInfo myComp = CultureInfo.InvariantCulture.CompareInfo;
+
+            // Compares two strings using myComp.
+            Console.WriteLine( "Comparing \"{0}\" and \"{1}\"", myStr1, myStr2 );
+            Console.WriteLine( "   With no CompareOptions            : {0}", myComp.Compare( myStr1, myStr2 ) );
+            Console.WriteLine( "   With None                         : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.None ) );
+            Console.WriteLine( "   With Ordinal                      : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.Ordinal ) );
+            //Console.WriteLine( "   With StringSort                   : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.StringSort ) );
+            Console.WriteLine( "   With IgnoreCase                   : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.IgnoreCase ) );
+            //Console.WriteLine( "   With IgnoreSymbols                : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.IgnoreSymbols ) );
+            //Console.WriteLine( "   With IgnoreCase and IgnoreSymbols : {0}", myComp.Compare( myStr1, myStr2, CompareOptions.IgnoreCase | CompareOptions.IgnoreSymbols ) );
         }
+
+
+
+        void TestCast(object str)
+        {
+            Console.WriteLine("Convertible? " + ((str as IConvertible) != null)
+                            + " Comparable? " + ((str as IComparable) != null));
+        }
+
     }
 }
-

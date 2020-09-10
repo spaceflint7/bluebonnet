@@ -15,7 +15,7 @@ namespace system.text.regularexpressions
             groupCollection = new GroupCollection(this, matcher, input);
         }
 
-        private Match() : base(0, "", 0, 0)
+        private Match() : base(-1, "", -1, -1)
         {
             groupCollection = new GroupCollection(this, null, null);
         }

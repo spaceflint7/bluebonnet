@@ -768,13 +768,25 @@ namespace SpaceFlint.CilToJava
             if (fromType.Equals(intoType))
                 return false;   // no, if same type (by value)
 
+            // if casting to one of the non-generic types of that a string
+            // implements, and the source is either a string or an object
+
+            bool fromTypeIsObjectType = fromType.Equals(JavaType.ObjectType);
+
+            if (    (fromTypeIsObjectType || fromType.Equals(JavaType.StringType))
+                 && (    intoType.JavaName == "system.IComparable"
+                      || intoType.JavaName == "system.IConvertible"))
+            {
+                return true;
+            }
+
             // if casting to one of the types that any array should implememt,
             // and the castee is an array, or 'object', or one of those types,
             // then always call TestCast/CallCast, because we might have to
             // create a helper proxy for an array object
 
-            bool fromTypeMayBeArray = (    fromType.ArrayRank != 0
-                                        || fromType.Equals(JavaType.ObjectType)
+            bool fromTypeMayBeArray = (    fromTypeIsObjectType
+                                        || fromType.ArrayRank != 0
                                         || IsArray(fromType.JavaName));
 
             return (fromTypeMayBeArray && IsArray(intoType.JavaName));
