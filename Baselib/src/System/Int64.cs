@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -13,20 +15,21 @@ namespace system
 
         public static Int64 Box(long v) => new Int64() { v = v };
         public static Int64 Box(long[] a, int i) => new Int64.InArray(a, i);
+        protected virtual ValueType Clone(long v) => Int64.Box(v);
 
         public virtual long Get() => v;
         public virtual long VolatileGet() =>
-                Util.JavaUnsafe.getLongVolatile(this, ValueOffset);
+            JavaUnsafe.Obj.getLongVolatile(this, ValueOffset);
 
         public virtual void Set(long v) => this.v = v;
         public virtual void VolatileSet(long v) =>
-                Util.JavaUnsafe.putLongVolatile(this, ValueOffset, v);
+            JavaUnsafe.Obj.putLongVolatile(this, ValueOffset, v);
 
         public static void Set(long v, Int64 o) => o.Set(v);
         public static void VolatileSet(long v, Int64 o) => o.VolatileSet(v);
 
         public virtual bool CompareAndSwap(long expect, long update) =>
-            Util.JavaUnsafe.compareAndSwapLong(this, ValueOffset, expect, update);
+            JavaUnsafe.Obj.compareAndSwapLong(this, ValueOffset, expect, update);
 
 
 
@@ -119,7 +122,7 @@ namespace system
 
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((Int64) into).Set(Get());
-        ValueType ValueMethod.Clone() => Box(Get());
+        ValueType ValueMethod.Clone() => Clone(Get());
 
 
 
@@ -129,8 +132,9 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Int64);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Int64),
+                                                java.lang.Long.TYPE);
                 }
                 return _ValueOffset;
             }
@@ -220,14 +224,14 @@ namespace system
 
             public override long Get() => a[i];
             public override long VolatileGet() =>
-                Util.JavaUnsafe.getLongVolatile(a, Util.ElementOffset64(i));
+                JavaUnsafe.Obj.getLongVolatile(a, JavaUnsafe.ElementOffset64(i));
 
             public override void Set(long v) => a[i] = v;
             public override void VolatileSet(long v) =>
-                Util.JavaUnsafe.putLongVolatile(a, Util.ElementOffset64(i), v);
+                JavaUnsafe.Obj.putLongVolatile(a, JavaUnsafe.ElementOffset64(i), v);
 
             public override bool CompareAndSwap(long expect, long update) =>
-                Util.JavaUnsafe.compareAndSwapLong(a, Util.ElementOffset64(i), expect, update);
+                JavaUnsafe.Obj.compareAndSwapLong(a, JavaUnsafe.ElementOffset64(i), expect, update);
         }
 
     }
@@ -237,14 +241,22 @@ namespace system
     public class IntPtr : Int64
     {
 
+        public IntPtr() {}
         public IntPtr(int v) => this.v = v;
         public IntPtr(long v) => this.v = v;
 
-        public static int Size => 8;
-
-        public static readonly IntPtr Zero = new IntPtr(0);
+        [java.attr.RetainType] public static int Size => 8;
+        [java.attr.RetainType] public static readonly IntPtr Zero = new IntPtr(0);
 
         new public static IntPtr Box(long v) => new IntPtr(v);
+        protected override ValueType Clone(long v) => IntPtr.Box(v);
+
+        public static bool op_Equality(long a, long b) => a == b;
+        public static bool op_Inequality(long a, long b) => a != b;
+
+        public static explicit operator long(IntPtr a) => a.Get();
+        public static long op_Explicit(int a)  => (long) a;
+        public static int  op_Explicit(long a) => (int) a;
     }
 
 
@@ -255,12 +267,7 @@ namespace system
 
         new public static UInt64 Box(long v) => new UInt64() { v = v };
         public static UInt64 Box(ulong[] a, int i) => new UInt64.InArray(a, i);
-
-        public static void Set(long v, UInt64 o) => o.Set(v);
-        public static void VolatileSet(long v, UInt64 o) => o.VolatileSet(v);
-
-        public override bool CompareAndSwap(long expect, long update) =>
-            throw new System.NotSupportedException();
+        protected override ValueType Clone(long v) => UInt64.Box(v);
 
         public override bool Equals(object obj)
         {
@@ -386,11 +393,11 @@ namespace system
 
             public override long Get() => (long) a[i];
             public override long VolatileGet() =>
-                Util.JavaUnsafe.getLongVolatile(a, Util.ElementOffset64(i));
+                JavaUnsafe.Obj.getLongVolatile(a, JavaUnsafe.ElementOffset64(i));
 
             public override void Set(long v) => a[i] = (ulong) v;
             public override void VolatileSet(long v) =>
-                Util.JavaUnsafe.putLongVolatile(a, Util.ElementOffset64(i), v);
+                JavaUnsafe.Obj.putLongVolatile(a, JavaUnsafe.ElementOffset64(i), v);
         }
 
     }
@@ -400,14 +407,22 @@ namespace system
     public class UIntPtr : UInt64
     {
 
+        public UIntPtr() {}
         public UIntPtr(int v) => this.v = v;
         public UIntPtr(long v) => this.v = v;
 
-        public static int Size => 8;
-
-        public static readonly UIntPtr Zero = new UIntPtr(0);
+        [java.attr.RetainType] public static int Size => 8;
+        [java.attr.RetainType] public static readonly UIntPtr Zero = new UIntPtr(0);
 
         new public static UIntPtr Box(long v) => new UIntPtr(v);
+        protected override ValueType Clone(long v) => UIntPtr.Box(v);
+
+        public static bool op_Equality(long a, long b) => a == b;
+        public static bool op_Inequality(long a, long b) => a != b;
+
+        public static explicit operator long(UIntPtr a) => a.Get();
+        public static long op_Explicit(int a)  => (long) a;
+        public static int  op_Explicit(long a) => (int) a;
     }
 
 }

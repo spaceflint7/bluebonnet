@@ -46,5 +46,9 @@ namespace system
         // same as system.threading.PlatformHelper.ProcessorCount
         public static int ProcessorCount => java.lang.Runtime.getRuntime().availableProcessors();
 
+
+
+        public static void Exit(int exitCode) => java.lang.System.exit(exitCode);
+
     }
 }

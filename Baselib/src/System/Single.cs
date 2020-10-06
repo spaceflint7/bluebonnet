@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -16,11 +18,11 @@ namespace system
 
         public virtual float Get() => v;
         public virtual float VolatileGet() =>
-            java.lang.Float.intBitsToFloat(Util.JavaUnsafe.getIntVolatile(this, ValueOffset));
+            java.lang.Float.intBitsToFloat(JavaUnsafe.Obj.getIntVolatile(this, ValueOffset));
 
         public virtual void Set(float v) => this.v = v;
         public virtual void VolatileSet(float v) =>
-            Util.JavaUnsafe.putIntVolatile(this, ValueOffset, java.lang.Float.floatToRawIntBits(v));
+            JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, java.lang.Float.floatToRawIntBits(v));
 
         public static void Set(float v, Single o) => o.Set(v);
         public static void VolatileSet(float v, Single o) => o.VolatileSet(v);
@@ -94,13 +96,29 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Single);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Single),
+                                                java.lang.Float.TYPE);
                 }
                 return _ValueOffset;
             }
         }
         [java.attr.RetainType] static long _ValueOffset = -1;
+
+
+
+        //
+        // Is
+        //
+
+        public static bool IsNaN(float f) => java.lang.Float.isNaN(f);
+        public static bool IsFinite(float f) => ! java.lang.Float.isInfinite(f);
+        public static bool IsInfinity(float f) => java.lang.Float.isInfinite(f);
+        public static bool IsPositiveInfinity (float f) => f == java.lang.Float.POSITIVE_INFINITY;
+        public static bool IsNegativeInfinity(float f) => f == java.lang.Float.NEGATIVE_INFINITY;
+        public static bool IsNegative(float f) => f < 0.0;
+        public static bool IsNormal(float f) => f >= java.lang.Float.MIN_NORMAL;
+        public static bool IsSubnormal(float f) => f < java.lang.Float.MIN_NORMAL;
 
 
 
@@ -163,11 +181,11 @@ namespace system
             public override float Get() => a[i];
             public override float VolatileGet() =>
                 java.lang.Float.intBitsToFloat(
-                    Util.JavaUnsafe.getIntVolatile(a, Util.ElementOffset32(i)));
+                    JavaUnsafe.Obj.getIntVolatile(a, JavaUnsafe.ElementOffset32(i)));
 
             public override void Set(float v) => a[i] = v;
             public override void VolatileSet(float v) =>
-                Util.JavaUnsafe.putIntVolatile(a, Util.ElementOffset32(i),
+                JavaUnsafe.Obj.putIntVolatile(a, JavaUnsafe.ElementOffset32(i),
                                                         java.lang.Float.floatToRawIntBits(v));
         }
 

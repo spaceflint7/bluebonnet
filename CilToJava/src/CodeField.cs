@@ -92,7 +92,7 @@ namespace SpaceFlint.CilToJava
             byte op;
             if (! isStatic)
             {
-                stackMap.PopStack(CilMain.Where);   // pop object reference
+                PopObjectAndLoadFromSpan(fldClass);
                 op = 0xB4; // getfield
             }
             else
@@ -125,7 +125,7 @@ namespace SpaceFlint.CilToJava
             byte op;
             if (! isStatic)
             {
-                stackMap.PopStack(CilMain.Where);   // pop object reference
+                PopObjectAndLoadFromSpan(fldClass);
                 op = 0xB4; // getfield
             }
             else
@@ -162,6 +162,24 @@ namespace SpaceFlint.CilToJava
 
 
 
+        void PopObjectAndLoadFromSpan(CilType fldClass)
+        {
+            var stackTop = stackMap.PopStack(CilMain.Where);
+            stackMap.PushStack(stackTop);
+
+            if (    fldClass.IsValueClass
+                 && CodeSpan.LoadStore(true, (CilType) stackTop, null, fldClass, code))
+            {
+                stackMap.PopStack(CilMain.Where);
+                code.NewInstruction(0xC0 /* checkcast */, fldClass, null);
+            }
+
+            // pop object reference
+            stackMap.PopStack(CilMain.Where);
+        }
+
+
+
         bool StoreFieldValue(string fldName, CilType fldType, CilType fldClass,
                              bool isStatic, bool isVolatile)
         {
@@ -188,7 +206,7 @@ namespace SpaceFlint.CilToJava
             //   [VAL] -> putstatic
             //
             // isStatic=0 IsGeneric=X IsBoxed=1 IsCopyable=X:
-            // * [INS] [VAL] -> swap -> [VAl] [INS] -> getfield -> [VAL] [BOX] -> BoxedType.SetOV
+            // * [INS] [VAL] -> swap -> [VAL] [INS] -> getfield -> [VAL] [BOX] -> BoxedType.SetOV
             //
             // isStatic=0 IsGeneric=X IsBoxed=0 IsCopyable=1:
             //   [INS] [VAL] -> swap -> [VAL] [INS] -> getfield -> [VAL] [OBJ] -> ValueType.Copy
@@ -290,11 +308,19 @@ namespace SpaceFlint.CilToJava
 
                 if (fldType.IsValueClass)
                 {
+                    var fldValue = stackMap.PopStack(CilMain.Where);
+                    stackMap.PushStack(fldValue);
+
                     code.NewInstruction(0xB2 /* getstatic */, fldClass.AsWritableClass, fldRef);
                     stackMap.PushStack(fldType);
 
-                    if (fldType is BoxedType boxedType && (! boxedType.IsBoxedIntPtr))
+                    if (    fldType is BoxedType boxedType
+                         && ((! boxedType.IsBoxedIntPtr) || (! fldValue.IsReference)))
+                    {
+                        // use SetValue for boxed types, except in the case of IntPtr,
+                        // where we also require a primitive value on the stack
                         boxedType.SetValueVO(code, isVolatile);
+                    }
                     else
                         GenericUtil.ValueCopy(fldType, code);
 
@@ -339,18 +365,7 @@ namespace SpaceFlint.CilToJava
                     }
                     else
                     {
-                        var fldValue = stackMap.PopStack(CilMain.Where);
-                        var localIndex = locals.GetTempIndex(fldValue);
-                        code.NewInstruction(fldValue.StoreOpcode, null, localIndex);
-
-                        code.NewInstruction(0xB4 /* getfield */, fldClass.AsWritableClass, fldRef);
-
-                        code.NewInstruction(fldValue.LoadOpcode, null, localIndex);
-                        stackMap.PushStack(fldValue);
-
-                        boxedType.SetValueOV(code, isVolatile);
-
-                        locals.FreeTempIndex(localIndex);
+                        StoreIntoBoxedField(fldClass, boxedType, fldRef, isVolatile);
                     }
                 }
                 else if (fldType.IsValueClass && (! isUninitializedThisField))
@@ -358,11 +373,28 @@ namespace SpaceFlint.CilToJava
                     // note that if initializing a value type field before call
                     // to the base constructor, we select the next 'else' block.
 
-                    code.NewInstruction(0x5F /* swap */, null, null);
+                    if (fldType is BoxedType boxedType2 && boxedType2.IsBoxedIntPtr)
+                    {
+                        StoreIntoBoxedField(fldClass, boxedType2, fldRef, isVolatile);
+                    }
+                    else
+                    {
+                        code.NewInstruction(0x5F /* swap */, null, null);
 
-                    code.NewInstruction(0xB4 /* getfield */, fldClass.AsWritableClass, fldRef);
+                        var stackVal = stackMap.PopStack(CilMain.Where);
+                        var stackObj = stackMap.PopStack(CilMain.Where);
+                        stackMap.PushStack(stackObj);
+                        stackMap.PushStack(stackVal);
+                        if (CodeSpan.LoadStore(true, (CilType) stackObj, null, fldClass, code))
+                        {
+                            stackMap.PopStack(CilMain.Where);
+                            code.NewInstruction(0xC0 /* checkcast */, fldClass, null);
+                        }
 
-                    GenericUtil.ValueCopy(fldType, code);
+                        code.NewInstruction(0xB4 /* getfield */, fldClass.AsWritableClass, fldRef);
+
+                        GenericUtil.ValueCopy(fldType, code);
+                    }
                 }
                 else
                 {
@@ -377,6 +409,32 @@ namespace SpaceFlint.CilToJava
                 stackMap.PopStack(CilMain.Where);
                 stackMap.PopStack(CilMain.Where);
             }
+        }
+
+
+
+        void StoreIntoBoxedField(CilType fldClass, BoxedType fldBoxedType,
+                                 JavaFieldRef fldRef, bool isVolatile)
+        {
+            var stackVal = stackMap.PopStack(CilMain.Where);
+            var stackObj = stackMap.PopStack(CilMain.Where);
+            stackMap.PushStack(stackObj);
+            stackMap.PushStack(stackVal);
+
+            var localIndex = locals.GetTempIndex(stackVal);
+            code.NewInstruction(stackVal.StoreOpcode, null, localIndex);
+
+            if (CodeSpan.LoadStore(true, (CilType) stackObj, null, fldClass, code))
+            {
+                stackMap.PopStack(CilMain.Where);
+                code.NewInstruction(0xC0 /* checkcast */, fldClass, null);
+            }
+
+            code.NewInstruction(0xB4 /* getfield */, fldClass.AsWritableClass, fldRef);
+            code.NewInstruction(stackVal.LoadOpcode, null, localIndex);
+            fldBoxedType.SetValueOV(code, isVolatile);
+
+            locals.FreeTempIndex(localIndex);
         }
 
 

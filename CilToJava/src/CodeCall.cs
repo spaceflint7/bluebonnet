@@ -17,6 +17,9 @@ namespace SpaceFlint.CilToJava
 
             if (data is MethodReference methodRef)
             {
+                if (op == Code.Call && CodeSpan.ExplicitCast(methodRef, code))
+                    return;
+
                 var callMethod = CilMain.GenericStack.EnterMethod(methodRef);
 
                 if (op == Code.Call)
@@ -1130,7 +1133,8 @@ namespace SpaceFlint.CilToJava
         static Dictionary<string, string> NativeMethodClasses = new Dictionary<string, string>()
         {
             { "java.lang.Class", "system.RuntimeType" },
-            { "system.reflection.AssemblyName", "system.reflection.RuntimeAssembly" }
+            { "system.reflection.AssemblyName", "system.reflection.RuntimeAssembly" },
+            { "system.TimeSpan", "system.CompatibilitySwitches$TimeSpan" },
         };
 
     }

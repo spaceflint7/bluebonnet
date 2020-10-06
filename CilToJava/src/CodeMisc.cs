@@ -121,7 +121,10 @@ namespace SpaceFlint.CilToJava
                 else if (dstType.IsReference)
                 {
                     CodeArrays.CheckCast(dstType, true, code);
-                    op = 0xC0; // checkcast
+                    if (dstType.IsGenericParameter)
+                        op = 0x00; // nop
+                    else
+                        op = 0xC0; // checkcast
                 }
                 else
                     throw new InvalidProgramException();

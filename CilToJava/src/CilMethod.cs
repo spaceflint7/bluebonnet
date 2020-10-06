@@ -221,7 +221,7 @@ namespace SpaceFlint.CilToJava
                     appendSuffix |= fromParameterType.IsGenericInstance;
 
                     if (! paramType.IsReference)
-                        appendSuffix |= ShouldRenamePrimitive(paramType);
+                        appendSuffix |= ShouldRenamePrimitive(paramType, DeclType);
                 }
 
                 Parameters.Add(new JavaFieldRef("", paramType));
@@ -240,7 +240,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-            static bool ShouldRenamePrimitive(CilType paramType)
+            static bool ShouldRenamePrimitive(CilType paramType, CilType declType)
             {
                 // .Net primitives and Java primitives do not have an exact 1:1
                 // correspondence, for example both Int32 and UInt32 translate
@@ -264,6 +264,13 @@ namespace SpaceFlint.CilToJava
                     case TypeCode.Int32 when name == "system.Int32":
                     case TypeCode.Int64 when name == "system.Int64":
                         return false;
+                }
+
+                if (paramType.JavaName == declType.JavaName)
+                {
+                    // don't rename if the parameter is within its own type,
+                    // e.g. system.IntPtr::CompareTo(system.IntPtr)
+                    return false;
                 }
 
                 return true;

@@ -112,6 +112,27 @@ namespace system
         }
 
         //
+        // Helper methods for offsets and loops
+        //
+
+        [java.attr.RetainName]
+        public long Subtract(Span<T> other)
+        {
+            var array1 = this.array?.Get();
+            var array2 = other.array?.Get();
+            if (array1 != array2)
+                throw new System.ArgumentException();
+            var shift = this.shift;
+            if (shift != 0)
+                shift--;
+            return (this.start - other.start) << shift;
+        }
+
+        [java.attr.RetainName]
+        public static int CompareTo(Span<T> span1, Span<T> span2)
+            => (int) span1.Subtract(span2);
+
+        //
         // Assign
         //
         // this helper method is invoked by code which stores an address into
@@ -125,6 +146,22 @@ namespace system
         [java.attr.RetainName]
         public static System.ValueType Assign(ValueType source)
             => new Span<T>((T[]) (object) (new ValueType[1] { source }));
+
+        [java.attr.RetainName]
+        public static Span<object> Assign(long zero)
+        {
+            // we expect an assignment of zero at the end of a 'fixed' block
+            if (zero != 0L)
+                throw new System.ArgumentException();
+            return Span<object>.Empty;
+        }
+
+        [java.attr.RetainName]
+        public static System.ValueType AssignArray(object array, int index)
+        {
+            int length = java.lang.reflect.Array.getLength(array) - index;
+            return new Span<T>((T[]) (object) array, index, length);
+        }
 
         //
         // helper methods to access a span of a primitive type.
@@ -140,7 +177,7 @@ namespace system
         public char LoadC() => ((char[]) Array(java.lang.Character.TYPE))[start];
         public void StoreC(char value)
         {
-            // disallow writing into a Span<char> created via String() method above
+            // disallow writing into a Span<char> created via Assign(string) method above
             if (count == System.SByte.MinValue)
                 throw new System.InvalidOperationException();
             ((char[]) Array(java.lang.Character.TYPE))[start] = value;
@@ -153,7 +190,7 @@ namespace system
         public void StoreI(int value) => ((int[]) Array(java.lang.Integer.TYPE))[start] = value;
 
         public long LoadJ() => ((long[]) Array(java.lang.Long.TYPE))[start];
-        public void StoreJ(int value) => ((long[]) Array(java.lang.Long.TYPE))[start] = value;
+        public void StoreJ(long value) => ((long[]) Array(java.lang.Long.TYPE))[start] = value;
 
         public float LoadF() => ((float[]) Array(java.lang.Float.TYPE))[start];
         public void StoreF(float value) => ((float[]) Array(java.lang.Float.TYPE))[start] = value;
@@ -228,7 +265,7 @@ namespace system
                 count = length - start;
             }
             this.shift = Shiftof() + 1;
-            this.start = 0;
+            this.start = start;
         }
 
         public object this[int index] => system.Array.Box(array.Get(), start + index);

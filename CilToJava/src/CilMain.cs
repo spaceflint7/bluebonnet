@@ -110,12 +110,13 @@ namespace SpaceFlint.CilToJava
 
 
 
-        internal static void MakeRoomForCategory2ValueOnStack(JavaCode code)
+        internal static void MakeRoomForCategory2ValueOnStack(JavaCode code, JavaType prev = null)
         {
             // ensure the stack has enough space for a category-2 value
+            // following a value of either category-1 or category-2
             if (code.StackMap != null)
             {
-                code.StackMap.PushStack(JavaType.IntegerType);
+                code.StackMap.PushStack(prev ?? JavaType.IntegerType);
                 code.StackMap.PushStack(JavaType.LongType);
                 code.StackMap.PopStack(CilMain.Where);
                 code.StackMap.PopStack(CilMain.Where);
@@ -138,8 +139,11 @@ namespace SpaceFlint.CilToJava
                 if (cilType.HasCustomAttribute("Discard"))
                     continue; // if decorated with [java.attr.Discard], don't export to java
 
-                if (cilType.FullName == "<PrivateImplementationDetails>")
+                var FullName = cilType.FullName;
+                if (FullName == "<PrivateImplementationDetails>")
                     continue; // discard the private class for array initializers
+                if (FullName == "Microsoft.FSharp.NativeInterop.NativePtrModule")
+                    continue; // discard PtrModule with Void* pointers
 
                 Where.Push($"assembly {cilType.Module.FileName}");
 
@@ -173,6 +177,7 @@ namespace SpaceFlint.CilToJava
                        .Replace('>', CLOSE_PARENS)
 
                        .Replace('|',  '\u00A6')   // U+00A6 Broken Bar
+                       .Replace('!',  '\uFF01')   // U+FF01 Fullwidth Exclamation Mark
                        .Replace('\'', '\uFF07')   // U+FF07 Fullwidth Apostrophe
                        .Replace(',',  '\uFF0C')   // U+FF0C Fullwidth Comma
                        .Replace('=',  '\uFF1D')   // U+FF1D Fullwidth Equals Sign
@@ -180,6 +185,7 @@ namespace SpaceFlint.CilToJava
                        .Replace('[',  '\uFF3B')   // U+FF3B Fullwidth Left Square Bracket
                        .Replace(']',  '\uFF3D')   // U+FF3D Fullwidth Right Square Bracket
                        .Replace('`',  '\uFF40')   // U+FF40 Fullwidth Grave Accent
+                       .Replace('~',  '\uFF5E')   // U+FF40 Fullwidth Tilde
                        ;
         }
 

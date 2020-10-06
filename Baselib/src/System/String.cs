@@ -470,7 +470,12 @@ namespace system
         public static bool Equals(java.lang.String a, java.lang.String b)
             => (a == null) ? (b == null) : a.Equals(b);
 
-
+        public static bool Equals(string a, string b, System.StringComparison comparisonType)
+        {
+            var (compareInfo, compareOption) = StringComparisonToCompareArguments(comparisonType);
+            return 0 == system.globalization.CompareInfo.CompareString(
+                                (string) (object) a, b, compareOption, compareInfo);
+        }
 
         //
         // CompareOrdinal
@@ -511,30 +516,42 @@ namespace system
         //
 
         public static int Compare(string strA, string strB)
-            => system.globalization.CompareInfo.CurrentCompareInfo.Compare(strA, strB,
-                    System.Globalization.CompareOptions.None);
+        {
+            return system.globalization.CompareInfo.CompareString(strA, strB,
+                        System.Globalization.CompareOptions.None,
+                        system.globalization.CompareInfo.CurrentCompareInfo);
+        }
 
         public static int Compare(string strA, string strB, bool ignoreCase)
-            => system.globalization.CompareInfo.CurrentCompareInfo.Compare(strA, strB,
+        {
+            return system.globalization.CompareInfo.CompareString(strA, strB,
                         ignoreCase ? System.Globalization.CompareOptions.IgnoreCase
-                                   : System.Globalization.CompareOptions.None);
+                                   : System.Globalization.CompareOptions.None,
+                        system.globalization.CompareInfo.CurrentCompareInfo);
+        }
 
         public static int Compare(string strA, string strB, System.StringComparison option)
         {
             var (compareInfo, compareOption) = StringComparisonToCompareArguments(option);
-            return compareInfo.Compare(strA, strB, compareOption);
+            return system.globalization.CompareInfo.CompareString(strA, strB, compareOption, compareInfo);
         }
 
         public static int Compare(string strA, string strB,
-                                  bool ignoreCase, System.Globalization.CultureInfo culture)
-            => culture.CompareInfo.Compare(strA, strB,
+                                  bool ignoreCase, system.globalization.CultureInfo culture)
+        {
+            return system.globalization.CompareInfo.CompareString(strA, strB,
                         ignoreCase ? System.Globalization.CompareOptions.IgnoreCase
-                                   : System.Globalization.CompareOptions.None);
+                                   : System.Globalization.CompareOptions.None,
+                        culture.CompareInfo);
+        }
 
         public static int Compare(string strA, string strB,
-                                  System.Globalization.CultureInfo culture,
+                                  system.globalization.CultureInfo culture,
                                   System.Globalization.CompareOptions options)
-            => culture.CompareInfo.Compare(strA, strB, options);
+        {
+            return system.globalization.CompareInfo.CompareString(strA, strB,
+                        options, culture.CompareInfo);
+        }
 
         //
         // Compare with length

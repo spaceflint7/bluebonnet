@@ -404,7 +404,7 @@ namespace SpaceFlint.CilToJava
 
                 case Code.Ldelema:
 
-                    arrays.Address(null);
+                    arrays.Address(null, cilInst);
                     break;
 
                 case Code.Ldelem_I1:case Code.Ldelem_U1:case Code.Ldelem_I2:case Code.Ldelem_U2:

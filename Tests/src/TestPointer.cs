@@ -13,6 +13,10 @@ namespace Tests
             Test2("Hello, world");
             Test3(default(Guid));
             Test4(default(AAA));
+            Test5();
+            Test6();
+            Test7();
+            Test8();
         }
 
         unsafe void Test1()
@@ -74,6 +78,90 @@ namespace Tests
             AAA *pFrom = &from;
             *pFrom = new AAA();
             Console.WriteLine(from);
+        }
+
+        //
+        // Test5
+        //
+
+        struct Wrapper { public int v; }
+        struct Element {
+            public int v;
+            public Wrapper w;
+            public override string ToString() => $"{v},{w.v}";
+        }
+
+        unsafe void Test5()
+        {
+            var array = new Element[10];
+            fixed (Element* ptr = &array[0])
+            {
+                int v1 = ptr->v;
+                int v2 = ptr->w.v;
+                ptr->v = 1;
+                ptr->w = new Wrapper() { v = 2 };
+                Console.WriteLine(ptr->v + "," + ptr->w.v);
+            }
+        }
+
+        unsafe void Test6()
+        {
+            var array = new Element[10];
+            fixed (Element* ptr = &array[0])
+            {
+                for (int i = 0; i < array.Length; i++)
+                {
+                    ptr[i].v = i;
+                    ptr[i].w.v = i;
+                }
+            }
+            Console.WriteLine(string.Join(",", array));
+
+            var intArray = stackalloc int[10];
+            for (int *intPtr = &intArray[0]; intPtr != &intArray[10]; intPtr++)
+            {
+                *intPtr = (int) (intPtr - &intArray[0]);
+                Console.Write(*intPtr);
+            }
+            Console.WriteLine();
+        }
+
+        unsafe void Test7()
+        {
+            var array = new Element[10];
+            fixed (Element* ptr0 = &array[5])
+            {
+                InnerMethod((IntPtr) ptr0);
+            }
+            Console.WriteLine(string.Join(",", array));
+            void InnerMethod(IntPtr ptr)
+            {
+                Element* myElement = (Element*) ptr;
+                myElement[0].v = 5;
+                myElement[1].v = 6;
+            }
+        }
+
+        unsafe void Test8()
+        {
+            if (true)
+            {
+                var array = new UInt64[10];
+                fixed (UInt64* ptr = &array[0])
+                {
+                    for (int i = 0; i < array.Length; i++)
+                        ptr[i] = (UInt64) 1;
+                }
+            }
+            if (true)
+            {
+                var array = new IntPtr[10];
+                fixed (IntPtr* ptr = &array[0])
+                {
+                    for (int i = 0; i < array.Length; i++)
+                        ptr[i] = (IntPtr) 1;
+                }
+            }
         }
 
     }

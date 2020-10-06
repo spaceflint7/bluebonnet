@@ -140,10 +140,11 @@ namespace system
                      && castToRuntimeType.JavaClassForArray()
                                 .isAssignableFrom(((java.lang.Object) obj).getClass()))
                     return obj;
+
+                if (@throw)
+                    ThrowInvalidCastException(obj, castToType);
             }
 
-            if (@throw)
-                ThrowInvalidCastException(obj, castToType);
             return null;
         }
 

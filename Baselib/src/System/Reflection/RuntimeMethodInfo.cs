@@ -18,6 +18,8 @@ namespace system.reflection
         [java.attr.RetainType] public system.RuntimeType reflectedType;
         [java.attr.RetainType] public object[] typeArguments;
 
+        [java.attr.RetainType] public MethodAttributes cachedAttrs = 0;
+
         [java.attr.RetainType] public int genericFlags;
         const int flgGenericMethod             = 0x10;
         const int flgGenericMethodDefinition   = 0x20;
@@ -296,20 +298,63 @@ namespace system.reflection
         //
         //
 
+        public override MethodAttributes Attributes
+        {
+            get
+            {
+                var attrs = cachedAttrs;
+                if (attrs == 0)
+                {
+                    var modifiers = JavaMethod.getModifiers();
+                    if ((modifiers & java.lang.reflect.Modifier.ABSTRACT) != 0)
+                        attrs |= MethodAttributes.Abstract;
+                    if ((modifiers & java.lang.reflect.Modifier.FINAL) != 0)
+                        attrs |= MethodAttributes.Final;
+                    if ((modifiers & java.lang.reflect.Modifier.STATIC) != 0)
+                        attrs |= MethodAttributes.Static;
+
+                    if ((modifiers & java.lang.reflect.Modifier.PUBLIC) != 0)
+                        attrs |= MethodAttributes.Public;
+                    else if ((modifiers & java.lang.reflect.Modifier.PROTECTED) != 0)
+                        attrs |= MethodAttributes.Family;
+                    else
+                        attrs |= MethodAttributes.Private;
+
+                    cachedAttrs = attrs;
+                }
+                return attrs;
+            }
+        }
+
+        //
+        //
+        //
+
+        public override ParameterInfo[] GetParameters()
+        {
+            var classes = JavaMethod.getParameterTypes();
+            var infos = new ParameterInfo[classes.Length];
+            for (int i = 0; i < classes.Length; i++)
+            {
+                var name = "arg" + i;
+                var type = system.RuntimeType.GetType(classes[i]);
+                infos[i] = new RuntimeParameterInfo(name, type, i);
+            }
+            return infos;
+        }
+
+        //
+        //
+        //
+
         public override Type ReflectedType => reflectedType;
 
         public override Type DeclaringType
             => system.RuntimeType.GetType(JavaMethod.getDeclaringClass());
 
-        public override MethodAttributes Attributes
-            => throw new PlatformNotSupportedException();
-
         public override string Name => strippedName;
 
         public override System.RuntimeMethodHandle MethodHandle
-            => throw new PlatformNotSupportedException();
-
-        public override ParameterInfo[] GetParameters()
             => throw new PlatformNotSupportedException();
 
         public override MethodInfo GetBaseDefinition()
@@ -346,6 +391,24 @@ namespace system.reflection
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
             => throw new PlatformNotSupportedException();
+
+        //
+        //
+        //
+
+        static RuntimeMethodInfo()
+        {
+            system.Util.DefineException(
+                    (java.lang.Class) typeof(java.lang.reflect.InvocationTargetException),
+                    (exc) => new System.Reflection.TargetInvocationException(exc.getMessage(),
+                                                    Util.TranslateException(exc.getCause()))
+            );
+
+            system.Util.DefineException(
+                    (java.lang.Class) typeof(java.lang.NoSuchMethodException),
+                    (exc) => new System.MissingMethodException(exc.getMessage())
+            );
+        }
 
     }
 

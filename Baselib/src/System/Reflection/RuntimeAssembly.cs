@@ -10,39 +10,21 @@ namespace system.reflection
     public class RuntimeAssembly : System.Reflection.Assembly, ISerializable
     {
 
-        [java.attr.RetainType] private java.security.ProtectionDomain JavaDomain;
-        private System.Reflection.Module[] theModule;
-        private static java.util.concurrent.ConcurrentHashMap _DomainToAssemblyMap;
-
         //
-        //
+        // Singleton
         //
 
-        private RuntimeAssembly(java.security.ProtectionDomain domain)
+        public static RuntimeAssembly CurrentAssembly
+            => System.Threading.LazyInitializer.EnsureInitialized<RuntimeAssembly>(ref theInstance);
+
+        private static RuntimeAssembly theInstance;
+
+        private System.Reflection.Module[] theModuleList;
+
+        public RuntimeAssembly()
         {
-            JavaDomain = domain;
-        }
-
-        //
-        // GetAssemblyForDomain
-        //
-
-        public static System.Reflection.Assembly GetAssemblyForDomain(
-                                                java.security.ProtectionDomain domain)
-        {
-            if (domain == null)
-                throw new DllNotFoundException();
-            var map = System.Threading.LazyInitializer
-                            .EnsureInitialized<java.util.concurrent.ConcurrentHashMap>(
-                                    ref _DomainToAssemblyMap);
-            var assembly = (RuntimeAssembly) map.get(domain);
-            if (assembly == null)
-            {
-                var newAssembly = new RuntimeAssembly(domain);
-                assembly = (RuntimeAssembly)
-                                map.putIfAbsent(domain, newAssembly) ?? newAssembly;
-            }
-            return assembly;
+            var theModule = (System.Reflection.Module) (object) new RuntimeModule();
+            theModuleList = new System.Reflection.Module[] { theModule };
         }
 
         //
@@ -51,35 +33,14 @@ namespace system.reflection
 
         public static RuntimeAssembly GetExecutingAssembly(
                                             ref system.threading.StackCrawlMark stackMark)
-        {
-            java.security.ProtectionDomain domain = null;
-            var stackTrace = (new java.lang.Throwable()).getStackTrace();
-            foreach (var stackElem in stackTrace)
-            {
-                var clsnm = stackElem.getClassName();
-                if (! clsnm.StartsWith("system.reflection."))
-                {
-                    domain = java.lang.Class.forName(clsnm)?.getProtectionDomain();
-                    break;
-                }
-            }
-            return (RuntimeAssembly) GetAssemblyForDomain(domain);
-        }
+            => CurrentAssembly;
 
         //
         // GetModules
         //
 
         public override System.Reflection.Module[] GetModules(bool getResourceModules)
-        {
-            return System.Threading.LazyInitializer
-                    .EnsureInitialized<System.Reflection.Module[]>(ref theModule, () =>
-            {
-                var mod = (System.Reflection.Module) (object)
-                                (new RuntimeModule() { JavaDomain = JavaDomain });
-                return new System.Reflection.Module[] { mod };
-            });
-        }
+            => CurrentAssembly.theModuleList;
 
         //
         // GetName
@@ -87,11 +48,24 @@ namespace system.reflection
 
         public override System.Reflection.AssemblyName GetName(bool copiedName)
         {
-            var name = new System.Reflection.AssemblyName(
-                                JavaDomain.getCodeSource().getLocation().getFile());
+            var name = new System.Reflection.AssemblyName("TheAssembly");
             name.Version = new Version();
             return name;
         }
+
+        public override string FullName => GetName(false).ToString();
+
+        // nToString is called by AssemblyName.FullName
+        public static string nToString(System.Reflection.AssemblyName name)
+            => $"{name.Name}, Version={name.Version}, Culture={name.CultureName}, PublicKeyToken=null";
+
+        //
+        // GetManifestResourceStream
+        //
+
+        public override System.IO.Stream GetManifestResourceStream(string name) => null;
+
+        public override System.IO.Stream GetManifestResourceStream(System.Type type, string name) => null;
 
         //
         // nInit

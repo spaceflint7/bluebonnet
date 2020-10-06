@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -16,11 +18,11 @@ namespace system
 
         public virtual double Get() => v;
         public virtual double VolatileGet() =>
-            java.lang.Double.longBitsToDouble(Util.JavaUnsafe.getLongVolatile(this, ValueOffset));
+            java.lang.Double.longBitsToDouble(JavaUnsafe.Obj.getLongVolatile(this, ValueOffset));
 
         public virtual void Set(double v) => this.v = v;
         public virtual void VolatileSet(double v) =>
-            Util.JavaUnsafe.putLongVolatile(this, ValueOffset, java.lang.Double.doubleToRawLongBits(v));
+            JavaUnsafe.Obj.putLongVolatile(this, ValueOffset, java.lang.Double.doubleToRawLongBits(v));
 
         public static void Set(double v, Double o) => o.Set(v);
         public static void VolatileSet(double v, Double o) => o.VolatileSet(v);
@@ -94,13 +96,29 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Double);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Double),
+                                                java.lang.Double.TYPE);
                 }
                 return _ValueOffset;
             }
         }
         [java.attr.RetainType] static long _ValueOffset = -1;
+
+
+
+        //
+        // Is
+        //
+
+        public static bool IsNaN(double d) => java.lang.Double.isNaN(d);
+        public static bool IsFinite(double d) => ! java.lang.Double.isInfinite(d);
+        public static bool IsInfinity(double d) => java.lang.Double.isInfinite(d);
+        public static bool IsPositiveInfinity (double d) => d == java.lang.Double.POSITIVE_INFINITY;
+        public static bool IsNegativeInfinity(double d) => d == java.lang.Double.NEGATIVE_INFINITY;
+        public static bool IsNegative(double d) => d < 0.0;
+        public static bool IsNormal(double d) => d >= java.lang.Double.MIN_NORMAL;
+        public static bool IsSubnormal(double d) => d < java.lang.Double.MIN_NORMAL;
 
 
 
@@ -198,11 +216,11 @@ namespace system
             public override double Get() => a[i];
             public override double VolatileGet() =>
                 java.lang.Double.longBitsToDouble(
-                    Util.JavaUnsafe.getLongVolatile(a, Util.ElementOffset64(i)));
+                    JavaUnsafe.Obj.getLongVolatile(a, JavaUnsafe.ElementOffset64(i)));
 
             public override void Set(double v) => a[i] = v;
             public override void VolatileSet(double v) =>
-                Util.JavaUnsafe.putLongVolatile(a, Util.ElementOffset64(i),
+                JavaUnsafe.Obj.putLongVolatile(a, JavaUnsafe.ElementOffset64(i),
                                                         java.lang.Double.doubleToRawLongBits(v));
         }
 

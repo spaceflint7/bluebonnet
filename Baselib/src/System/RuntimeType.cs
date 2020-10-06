@@ -27,7 +27,9 @@ namespace system
 
         [java.attr.RetainType] public TypeAttributes CachedAttrs;
         const TypeAttributes AttrInitialized = (TypeAttributes) 0x40000000;
+        const TypeAttributes AttrIsIntPtr    = (TypeAttributes) 0x20000000;
         const TypeAttributes AttrTypeCode    = (TypeAttributes) 0x1F000000;
+        const TypeAttributes AttrTypeCodeOrIsIntPtr = AttrTypeCode | AttrIsIntPtr;
         const TypeAttributes AttrPrivateMask = unchecked ((TypeAttributes) 0xFF000000);
 
         //
@@ -598,10 +600,22 @@ namespace system
             }
         }
 
-        public override Assembly Assembly => null;
-        public override string AssemblyQualifiedName => "?";
+        public override Assembly Assembly => system.reflection.RuntimeAssembly.CurrentAssembly;
+
+        public override string AssemblyQualifiedName
+        {
+            get
+            {
+                var name = FullName;
+                if (name != null)
+                    name = Assembly.CreateQualifiedName(Assembly.FullName, name);
+                return name;
+            }
+        }
+
+        public override Module Module => Assembly.GetModules(false)[0];
+
         public override System.Guid GUID => System.Guid.Empty;
-        public override Module Module => null;
         public override Type UnderlyingSystemType => this;
 
         // Attributes property
@@ -794,9 +808,9 @@ namespace system
             // the primitive types are Boolean, Byte, SByte, Int16, UInt16,
             // Int32, UInt32, Int64, UInt64, IntPtr, UIntPtr, Char, Double, and Single
             int typeCodeMinus1;
-            if ((typeCodeMinus1 = (int) (CachedAttrs & AttrTypeCode)) != 0)
+            if ((typeCodeMinus1 = (int) (CachedAttrs & AttrTypeCodeOrIsIntPtr)) != 0)
             {
-                typeCodeMinus1 >>= 24;
+                typeCodeMinus1 = (typeCodeMinus1 >> 24) & 0x0F;
                 if (typeCodeMinus1 <= 13) // Double == 14, but minus 1 */
                     return true;
             }
@@ -810,20 +824,32 @@ namespace system
         //
 
 
-
-        public object CreateInstanceDefaultCtor(bool publicOnly, bool skipCheckThis, bool fillCache,
-                                                ref system.threading.StackCrawlMark stackMark)
+        public void CreateInstanceCheckThis()
         {
-            if (ContainsGenericParameters)
-                throw new ArgumentException(Environment.GetResourceString("Acc_CreateGenericEx", this));
+            if (JavaClass == null || ContainsGenericParameters)
+                throw new ArgumentException();
 
             Type rootElementType = this;
             while (rootElementType.HasElementType)
                 rootElementType = rootElementType.GetElementType();
 
             if (object.ReferenceEquals(rootElementType, VoidType))
-                throw new NotSupportedException(Environment.GetResourceString("Acc_CreateVoid"));
+            {
+                // .Net also checks for System.ArgIterator, which we don't have
+                throw new NotSupportedException();
+            }
 
+            if (DelegateClass.isAssignableFrom(JavaClass))
+            {
+                // .Net allows this with a permission, we do not
+                throw new NotSupportedException();
+            }
+        }
+
+        public object CreateInstanceDefaultCtor(bool publicOnly, bool skipCheckThis, bool fillCache,
+                                                ref system.threading.StackCrawlMark stackMark)
+        {
+            CreateInstanceCheckThis();
             return CallConstructor(publicOnly);
         }
 
@@ -832,8 +858,41 @@ namespace system
         public static object CreateInstanceForAnotherGenericParameter(
                                 system.RuntimeType type, system.RuntimeType genericParameter)
         {
+            type.CreateInstanceCheckThis();
             var newType = (RuntimeType) GetType(type.JavaClass, genericParameter);
             return newType.CallConstructor(true);
+        }
+
+
+
+        public object CreateInstanceImpl(BindingFlags bindingAttr, Binder binder, object[] args,
+                                         CultureInfo culture, object[] activationAttributes,
+                                         ref system.threading.StackCrawlMark stackMark)
+        {
+            CreateInstanceCheckThis();
+
+            if (bindingAttr != (   BindingFlags.Instance
+                                 | BindingFlags.Public
+                                 | BindingFlags.CreateInstance))
+            {
+                throw new PlatformNotSupportedException();
+            }
+
+            if (! object.ReferenceEquals(activationAttributes, null))
+                throw new PlatformNotSupportedException();
+
+            var argTypes = new java.lang.Class[args.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (! object.ReferenceEquals(args[i], null))
+                    argTypes[i] = ((java.lang.Object) args[i]).getClass();
+            }
+
+            // make sure the static initializer for RuntimeMethodInfo runs
+            // and registers a tranlsation MissingMethodException
+            var methodInfo = typeof(system.reflection.RuntimeMethodInfo);
+
+            return JavaClass.getConstructor(argTypes).newInstance(args);
         }
 
 
@@ -873,7 +932,12 @@ namespace system
             {
                 throw new TypeLoadException(FullName, e);
             }
-            throw new TypeLoadException(FullName);
+
+            string msg = "missing";
+            if (publicOnly)
+                msg += " public";
+            msg += " parameterless constructor for " + FullName;
+            throw new TypeLoadException(msg);
         }
 
 
@@ -915,6 +979,9 @@ namespace system
                             return (java.lang.Class) typeof(java.lang.Object);
                         if (object.ReferenceEquals(this, ExceptionType))
                             return (java.lang.Class) typeof(java.lang.Throwable);
+                        if (    object.ReferenceEquals(this, IntPtrType)
+                             || object.ReferenceEquals(this, UIntPtrType))
+                            return java.lang.Long.TYPE;
                         return JavaClass;
                 }
             }
@@ -927,6 +994,10 @@ namespace system
                     return (java.lang.Class) typeof(java.lang.Throwable);
                 if (object.ReferenceEquals(cls, ((RuntimeType) typeof(String)).JavaClass))
                     return (java.lang.Class) typeof(java.lang.String);
+
+                if (    object.ReferenceEquals(cls, IntPtrType.JavaClass)
+                     || object.ReferenceEquals(cls, UIntPtrType.JavaClass))
+                    return java.lang.Long.TYPE;
 
                 if (object.ReferenceEquals(cls, ((RuntimeType) typeof(Double)).JavaClass))
                     return java.lang.Double.TYPE;
@@ -1358,9 +1429,23 @@ namespace system
                 AddBuiltinType((java.lang.Class) typeof(Double), java.lang.Double.TYPE,
                                TypeCode.Double);
 
+                AddBuiltinType((java.lang.Class) typeof(IntPtr),   null, (TypeCode) 0x21);
+                AddBuiltinType((java.lang.Class) typeof(UIntPtr),  null, (TypeCode) 0x21);
+
+                AddBuiltinType((java.lang.Class) typeof(Decimal),  null, TypeCode.Decimal);
+                AddBuiltinType((java.lang.Class) typeof(DateTime), null, TypeCode.DateTime);
+
+                IntPtrType = (RuntimeType) typeof(IntPtr);
+                UIntPtrType = (RuntimeType) typeof(UIntPtr);
+
                 system.Util.DefineException(
                     (java.lang.Class) typeof(java.lang.ClassCastException),
-                    (exc) => new System.InvalidCastException(exc.getMessage())
+                    (exc) => new InvalidCastException(exc.getMessage())
+                );
+
+                system.Util.DefineException(
+                    (java.lang.Class) typeof(java.lang.ExceptionInInitializerError),
+                    (exc) => new TypeInitializationException(exc.getMessage() ?? "(none)", exc)
                 );
             }
 
@@ -1369,7 +1454,7 @@ namespace system
                 var type = new RuntimeType(primary, null);
                 if (typeCode != TypeCode.Empty)
                 {
-                    type.CachedAttrs |= (TypeAttributes) ((((int) typeCode - 1) & 0x1F) << 24);
+                    type.CachedAttrs |= (TypeAttributes) ((((int) typeCode - 1) & 0x3F) << 24);
                 }
                 TypeCache.put(new TypeKey(primary, null), type);
                 if (secondary != null)
@@ -1388,6 +1473,8 @@ namespace system
         [java.attr.RetainType] private static Type ObjectType;
         [java.attr.RetainType] private static Type VoidType;
         [java.attr.RetainType] private static Type ExceptionType;
+        [java.attr.RetainType] private static RuntimeType IntPtrType;
+        [java.attr.RetainType] private static RuntimeType UIntPtrType;
 
         // the following initialization occurs after the StaticInit method has completed
         public static RuntimeType EnumType = (RuntimeType) typeof(Enum);
@@ -1479,6 +1566,37 @@ namespace system
         [java.attr.RetainType] private static java.lang.reflect.Method GetEnumRawConstantValues;
         #pragma warning restore 0436
 
+
+
+        //
+        // private method called from System.Type.GetType()
+        //
+
+        public static RuntimeType GetType(string typeName, bool throwOnError,
+                                          bool ignoreCase, bool reflectionOnly,
+                                          ref system.threading.StackCrawlMark stackMark)
+        {
+            ThrowHelper.ThrowIfNull(typeName);
+            if (typeName.IndexOfAny("\\`[],+".ToCharArray()) != -1)
+                return null;
+
+            int idx = typeName.LastIndexOf('.');
+            if (idx != -1)
+            {
+                var nsName = typeName.Substring(0, idx + 1).ToLowerInvariant();
+                typeName = nsName + typeName.Substring(idx + 1);
+            }
+
+            try
+            {
+                var cls = java.lang.Class.forName(typeName);
+                return (RuntimeType) GetType(cls);
+            }
+            catch (java.lang.ClassNotFoundException)
+            {
+            }
+            return null;
+        }
 
 
         //

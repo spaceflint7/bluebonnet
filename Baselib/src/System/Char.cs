@@ -65,6 +65,9 @@ namespace system
 
         //public static char ToUpper(char c, system.globalization.CultureInfo cultureInfo)
 
+        public static char ToLowerInvariant(char c) =>
+                                (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
+
         public static char ToUpperInvariant(char c) =>
                                 (c >= 'a' && c <= 'z') ? (char)(c - ('a' - 'A')) : c;
 

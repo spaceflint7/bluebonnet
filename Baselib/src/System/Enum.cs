@@ -47,6 +47,8 @@ namespace system
 
         public static object Box(int v, java.lang.Class cls) => Box((long) v, cls);
 
+        public static object Box(long v, System.Type type)
+            => Box(v, ((system.RuntimeType) type).JavaClassForArray());
 
 
         public int CompareTo(object other)

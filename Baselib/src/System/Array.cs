@@ -639,37 +639,114 @@ namespace system
             => LastIndexOf((Array) (object) array, (object) value, startIndex, count);
 
         //
-        // Sort
+        // Sort (non-generic)
         //
 
-        public static void Sort(Array array) => Sort(array, (system.collections.IComparer) null);
-        public static void Sort(Array array, int index, int length) => Sort(array, null, index, length, null);
-        public static void Sort(Array array, int index, int length, system.collections.IComparer comparer) => Sort(array, null, index, length, comparer);
+        public static void Sort(Array array)
+            => SortCommon(array, array, 0, -1, false, null);
+
         public static void Sort(Array array, system.collections.IComparer comparer)
+            => SortCommon(array, array, 0, -1, false, comparer);
+
+        public static void Sort(Array array, int index, int length)
+            => SortCommon(array, array, index, length, true, null);
+
+        public static void Sort(Array array, int index, int length, system.collections.IComparer comparer)
+            => SortCommon(array, array, index, length, true, comparer);
+
+        public static void Sort(Array keys, Array items)
+            => SortCommon(keys, items, 0, -1, false, null);
+
+        public static void Sort(Array keys, Array items, system.collections.IComparer comparer)
+            => SortCommon(keys, items, 0, -1, false, comparer);
+
+        public static void Sort(Array keys, Array items, int index, int length)
+            => SortCommon(keys, items, index, length, true, null);
+
+        public static void Sort(Array keys, Array items, int index, int length, system.collections.IComparer comparer)
+            => SortCommon(keys, items, index, length, true, comparer);
+
+        //
+        // Sort (generic)
+        //
+
+        public static void Sort<T>(T[] array)
+            => SortGeneric(array, array, 0, -1, false, null);
+
+        public static void Sort<T>(T[] array, system.collections.generic.IComparer<T> comparer)
+            => SortGeneric(array, array, 0, -1, false, comparer);
+
+        public static void Sort<T>(T[] array, int index, int length)
+            => SortGeneric(array, array, index, length, true, null);
+
+        public static void Sort<T>(T[] array, int index, int length, system.collections.generic.IComparer<T> comparer)
+            => SortGeneric(array, array, index, length, true, comparer);
+
+        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items)
+            => SortGeneric(keys, items, 0, -1, false, null);
+
+        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, system.collections.generic.IComparer<TKey> comparer)
+            => SortGeneric(keys, items, 0, -1, false, comparer);
+
+        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length)
+            => SortGeneric(keys, items, index, length, true, null);
+
+        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length,
+                                              system.collections.generic.IComparer<TKey> comparer)
+            => SortGeneric(keys, items, index, length, true, comparer);
+
+        private static void SortGeneric(object keys_, object items_,
+                                        int index, int length, bool haveLength,
+                                        java.util.Comparator comparer)
         {
-            ThrowIfNull(array);
-            Sort(array, null, 0, array.len, comparer);
+            ThrowIfNull(keys_);
+            var keys = GetProxy(keys_);
+            Array items;
+            if (object.ReferenceEquals(keys_, items_))
+                items = keys;
+            else
+            {
+                ThrowIfNull(items_);
+                items = GetProxy(items_);
+            }
+            SortCommon(keys, items, index, length, haveLength, comparer);
         }
 
-        public static void Sort(Array keys, Array items) => Sort(keys, items, 0, 0, null);
-        public static void Sort(Array keys, Array items, int index, int length) => Sort(keys, items, 0, 0, null);
-        public static void Sort(Array keys, Array items, system.collections.IComparer comparer) => Sort(keys, items, 0, 0, null);
+        //
+        // Sort (common method)
+        //
 
-        public static void Sort(Array keys, Array items, int index, int length,
-                                system.collections.IComparer comparer)
+        private static void SortCommon(Array keys, Array items,
+                                       int index, int length, bool haveLength,
+                                       java.util.Comparator comparer)
         {
             ThrowIfNull(keys);
             if (! object.ReferenceEquals(keys, items))              // sorting different arrays
                 throw new System.PlatformNotSupportedException();   //    not yet supported
             if (keys.rank != 1)
                 throw new System.RankException();
-            if (index < 0 || length < 0)
+
+            int endIndex;
+            if (index < 0)
                 throw new System.ArgumentOutOfRangeException();
-            if (keys.len - index < length)
-                throw new System.ArgumentException();
+            if (haveLength)
+            {
+                if (length < 0)
+                    throw new System.ArgumentOutOfRangeException();
+                if (keys.len - index < length)
+                    throw new System.ArgumentException();
+                endIndex = index + length;
+            }
+            else
+            {
+                endIndex = keys.len;
+                if (index >= endIndex)
+                    throw new System.ArgumentException();
+                length = endIndex - index;
+            }
             if (length <= 1)
                 return;
-            int endIndex = index + length;
+
             if (comparer == null)
             {
                 switch (keys.arr)
@@ -696,15 +773,7 @@ namespace system
             }
         }
 
-        /*public static void Sort<T>(T[] array)
-        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items)
-        public static void Sort<T>(T[] array, int index, int length)
-        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length)
-        public static void Sort<T>(T[] array, System.Collections.Generic.IComparer<T> comparer)
-        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, System.Collections.Generic.IComparer<TKey> comparer)
-        public static void Sort<T>(T[] array, int index, int length, System.Collections.Generic.IComparer<T> comparer)
-        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length, System.Collections.Generic.IComparer<TKey> comparer)
-        public static void Sort<T>(T[] array, Comparison<T> comparison)*/
+        /*public static void Sort<T>(T[] array, Comparison<T> comparison)*/
 
         //
         // BinarySearch
@@ -1099,33 +1168,53 @@ namespace system
             if (array is object[])
             {
                 var elemClass = ((java.lang.Object) array).getClass().getComponentType();
-                if (system.RuntimeType.IsValueClass(elemClass))
+                if (elemClass != null)
                 {
-                    if (elemClass == castToClass)
+                    if (system.RuntimeType.IsValueClass(elemClass))
+                    {
+                        if (elemClass == castToClass)
+                            return array;
+                    }
+                    else if (castToClass.isAssignableFrom(elemClass))
                         return array;
                 }
-                else if (castToClass.isAssignableFrom(elemClass))
-                    return array;
-                if (@throw)
-                    GenericType.ThrowInvalidCastException(array,
-                                    RuntimeType.GetType(castToClass).MakeArrayType());
+            }
+            if (array != null && @throw)
+            {
+                GenericType.ThrowInvalidCastException(array,
+                                RuntimeType.GetType(castToClass).MakeArrayType());
             }
             return null;
         }
 
         public static object CheckCast(object array, System.Type castToType, bool @throw)
         {
-            if (array is object[])
+            if (array != null)
             {
+                if (array is system.Array.ProxySyncRoot proxyArray)
+                    array = proxyArray.SyncRoot;
+
                 var elemClass = ((java.lang.Object) array).getClass().getComponentType();
-                var elemType = RuntimeType.GetType(elemClass);
-                if (system.RuntimeType.IsValueClass(elemClass))
+                if (elemClass != null)
                 {
-                    if (object.ReferenceEquals(elemType, castToType))
-                        return array;
+                    var elemType = RuntimeType.GetType(elemClass);
+                    if (system.RuntimeType.IsValueClass(elemClass))
+                    {
+                        if (object.ReferenceEquals(elemType, castToType))
+                            return array;
+                    }
+                    else if (elemClass.isPrimitive())
+                    {
+                        var castToClass = ((RuntimeType) castToType).JavaClassForArray();
+                        if (castToClass == elemClass)
+                            return array;
+                    }
+                    else
+                    {
+                        if (castToType.IsAssignableFrom(elemType))
+                            return array;
+                    }
                 }
-                else if (castToType.IsAssignableFrom(elemType))
-                    return array;
                 if (@throw)
                     GenericType.ThrowInvalidCastException(array, castToType.MakeArrayType());
             }
@@ -1425,6 +1514,12 @@ namespace system
             system.Util.DefineException(
                 (java.lang.Class) typeof(java.lang.IndexOutOfBoundsException),
                 (exc) => new System.IndexOutOfRangeException(exc.getMessage())
+            );
+
+            system.Util.DefineException(
+                (java.lang.Class) typeof(java.lang.NegativeArraySizeException),
+                (exc) => new System.OverflowException(
+                                "Array dimensions exceeded supported range.")
             );
 
             /*system.Util.DefineException(

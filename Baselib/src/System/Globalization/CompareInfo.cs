@@ -111,24 +111,37 @@ namespace system.globalization {
         //
 
         public virtual int Compare(string string1, string string2)
-            => CompareString(string1, 0, -1, string2, 0, -1, CompareOptions.None);
+        {
+            return CompareStringInternal(string1, 0, -1, string2, 0, -1,
+                                         CompareOptions.None, this);
+        }
 
         public virtual int Compare(string string1, string string2, CompareOptions options)
-            => CompareString(string1, 0, -1, string2, 0, -1, options);
+        {
+            return CompareStringInternal(string1, 0, -1, string2, 0, -1,
+                                         options, this);
+        }
 
         public virtual int Compare(string string1, int offset1, string string2, int offset2)
-            => CompareString(string1, offset1, -1, string2, offset2, -1, CompareOptions.None);
+        {
+            return CompareStringInternal(string1, offset1, -1, string2, offset2, -1,
+                                        CompareOptions.None, this);
+        }
 
         public virtual int Compare(string string1, int offset1, string string2, int offset2,
                                    CompareOptions options)
-            => CompareString(string1, offset1, -1, string2, offset2, -1, options);
+        {
+            return CompareStringInternal(string1, offset1, -1, string2, offset2, -1,
+                                         options, this);
+        }
 
         public virtual int Compare(string string1, int offset1, int length1,
                                    string string2, int offset2, int length2)
         {
             if (length1 < 0 || length2 < 0)
                 throw new ArgumentOutOfRangeException();
-            return CompareString(string1, offset1, length1, string2, offset2, length2, CompareOptions.None);
+            return CompareStringInternal(string1, offset1, length1, string2, offset2, length2,
+                                         CompareOptions.None, this);
         }
 
         public virtual int Compare(string string1, int offset1, int length1,
@@ -137,16 +150,46 @@ namespace system.globalization {
         {
             if (length1 < 0 || length2 < 0)
                 throw new ArgumentOutOfRangeException();
-            return CompareString(string1, offset1, length1, string2, offset2, length2, options);
+            return CompareStringInternal(string1, offset1, length1, string2, offset2, length2,
+                                         options, this);
         }
 
         //
-        // CompareString (internal method)
+        // CompareString (semi-public method)
         //
 
-        private int CompareString(string string1, int offset1, int length1,
-                                  string string2, int offset2, int length2,
-                                  CompareOptions options)
+        public static int CompareString(string string1, string string2,
+                                        CompareOptions options, CompareInfo compareInfo)
+        {
+            return CompareStringInternal(string1, 0, -1, string2, 0, -1,
+                                         options, compareInfo);
+        }
+
+        public static int CompareString(string string1, int offset1,
+                                        string string2, int offset2,
+                                        CompareOptions options, CompareInfo compareInfo)
+        {
+            return CompareStringInternal(string1, offset1, -1, string2, offset2, -1,
+                                         options, compareInfo);
+        }
+
+        public static int CompareString(string string1, int offset1, int length1,
+                                        string string2, int offset2, int length2,
+                                        CompareOptions options, CompareInfo compareInfo)
+        {
+            if (length1 < 0 || length2 < 0)
+                throw new ArgumentOutOfRangeException();
+            return CompareStringInternal(string1, offset1, length1, string2, offset2, length2,
+                                         options, compareInfo);
+        }
+
+        //
+        // CompareStringInternal (private method)
+        //
+
+        public static int CompareStringInternal(string string1, int offset1, int length1,
+                                                string string2, int offset2, int length2,
+                                                CompareOptions options, CompareInfo compareInfo)
         {
             if (offset1 < 0 || offset2 < 0)
                 throw new ArgumentOutOfRangeException();
@@ -176,7 +219,7 @@ namespace system.globalization {
             {
                 return CompareStringCulture(string1, offset1, endOffset1,
                                             string2, offset2, endOffset2,
-                                            CompareOptionsToCollatorMask(options));
+                                        compareInfo, CompareOptionsToCollatorMask(options));
             }
 
             static int GetEndOffset(string str, int ofs, int len)
@@ -220,19 +263,22 @@ namespace system.globalization {
         // CompareStringCulture (internal method)
         //
 
-        private int CompareStringCulture(string string1, int index1, int endIndex1,
-                                         string string2, int index2, int endIndex2,
-                                         uint mask)
+        private static int CompareStringCulture(string string1, int index1, int endIndex1,
+                                                string string2, int index2, int endIndex2,
+                                                CompareInfo compareInfo, uint mask)
         {
-            // create iterators for the two strings. see also IndexOfStringCulture
+            // create iterators for the two strings. see also IndexOfStringCulture.
+            // see note in IndexOfStringCulture regarding starting index.
 
-            var iterator1 = new Iterator(this, mask,
+            var iterator1 = new Iterator(compareInfo, mask,
                                          new java.text.StringCharacterIterator(
-                                             string1, index1, endIndex1, index1));
+                                             string1, 0, endIndex1, index1));
+            iterator1.Index = index1;
 
-            var iterator2 = new Iterator(this, mask,
+            var iterator2 = new Iterator(compareInfo, mask,
                                          new java.text.StringCharacterIterator(
-                                             string2, index2, endIndex2, index2));
+                                             string2, 0, endIndex2, index2));
+            iterator2.Index = index2;
 
             for (;;)
             {
@@ -531,9 +577,13 @@ namespace system.globalization {
                 switchDirection = false;
             }
 
+            // must always pass a starting range of zero, otherwise Android ICU
+            // throws an IndexOutOfBoundsException exception when the setText()
+            // method of CollationElementIterator calls setToStart() on the
+            // character iterator with a zero offset
             var largeIterator = new Iterator(this, mask,
                                         new java.text.StringCharacterIterator(
-                                            large, rangeStart, rangeEnd, rangeStart));
+                                            large, 0, rangeEnd, rangeStart));
 
             if (switchDirection)
             {

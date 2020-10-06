@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -13,6 +15,7 @@ namespace system
 
         public static SByte Box(int v) => new SByte() { v = (sbyte) v };
         public static SByte Box(sbyte[] a, int i) => new SByte.InArray(a, i);
+        protected virtual ValueType Clone(int v) => SByte.Box(v);
 
         public virtual int Get() => v;
         public virtual int VolatileGet() => throw new System.NotSupportedException();
@@ -76,23 +79,7 @@ namespace system
 
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((SByte) into).Set(Get());
-        ValueType ValueMethod.Clone() => Box(Get());
-
-
-
-        static long ValueOffset
-        {
-            get
-            {
-                if (_ValueOffset == -1)
-                {
-                    var cls = (java.lang.Class) typeof(SByte);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
-                }
-                return _ValueOffset;
-            }
-        }
-        [java.attr.RetainType] static long _ValueOffset = -1;
+        ValueType ValueMethod.Clone() => Clone(Get());
 
 
 
@@ -196,9 +183,7 @@ namespace system
 
         new public static Byte Box(int v) => new Byte() { v = (sbyte) v };
         public static Byte Box(byte[] a, int i) => new Byte.InArray(a, i);
-
-        public static void Set(int v, Byte o) => o.Set(v);
-        public static void VolatileSet(int v, Byte o) => throw new System.NotSupportedException();
+        protected override ValueType Clone(int v) => Byte.Box(v);
 
         public override bool Equals(object obj)
         {
@@ -226,6 +211,7 @@ namespace system
 
         public static int CompareTo(sbyte a, sbyte b)
             => a == b ? 0 : (a & 0xFF) < (b & 0xFF) ? -1 : 1;
+
 
 
         //

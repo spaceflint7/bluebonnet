@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -13,20 +15,21 @@ namespace system
 
         public static Int32 Box(int v) => new Int32() { v = v };
         public static Int32 Box(int[] a, int i) => new Int32.InArray(a, i);
+        protected virtual ValueType Clone(int v) => Int32.Box(v);
 
         public virtual int Get() => v;
         public virtual int VolatileGet() =>
-            Util.JavaUnsafe.getIntVolatile(this, ValueOffset);
+            JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
 
         public virtual void Set(int v) => this.v = v;
         public virtual void VolatileSet(int v) =>
-            Util.JavaUnsafe.putIntVolatile(this, ValueOffset, v);
+            JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, v);
 
         public static void Set(int v, Int32 o) => o.Set(v);
         public static void VolatileSet(int v, Int32 o) => o.VolatileSet(v);
 
         public virtual bool CompareAndSwap(int expect, int update) =>
-            Util.JavaUnsafe.compareAndSwapInt(this, ValueOffset, expect, update);
+            JavaUnsafe.Obj.compareAndSwapInt(this, ValueOffset, expect, update);
 
 
 
@@ -108,7 +111,7 @@ namespace system
 
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((Int32) into).Set(Get());
-        ValueType ValueMethod.Clone() => Box(Get());
+        ValueType ValueMethod.Clone() => Clone(Get());
 
 
 
@@ -118,8 +121,9 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Int32);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Int32),
+                                                java.lang.Integer.TYPE);
                 }
                 return _ValueOffset;
             }
@@ -230,14 +234,14 @@ namespace system
 
             public override int Get() => a[i];
             public override int VolatileGet() =>
-                Util.JavaUnsafe.getIntVolatile(a, Util.ElementOffset32(i));
+                JavaUnsafe.Obj.getIntVolatile(a, JavaUnsafe.ElementOffset32(i));
 
             public override void Set(int v) => a[i] = v;
             public override void VolatileSet(int v) =>
-                Util.JavaUnsafe.putIntVolatile(a, Util.ElementOffset32(i), v);
+                JavaUnsafe.Obj.putIntVolatile(a, JavaUnsafe.ElementOffset32(i), v);
 
             public override bool CompareAndSwap(int expect, int update) =>
-                Util.JavaUnsafe.compareAndSwapInt(a, Util.ElementOffset32(i), expect, update);
+                JavaUnsafe.Obj.compareAndSwapInt(a, JavaUnsafe.ElementOffset32(i), expect, update);
         }
 
     }
@@ -250,12 +254,7 @@ namespace system
 
         new public static UInt32 Box(int v) => new UInt32() { v = v };
         public static UInt32 Box(uint[] a, int i) => new UInt32.InArray(a, i);
-
-        public static void Set(int v, UInt32 o) => o.Set(v);
-        public static void VolatileSet(int v, UInt32 o) => o.VolatileSet(v);
-
-        public override bool CompareAndSwap(int expect, int update) =>
-            throw new System.NotSupportedException();
+        protected override ValueType Clone(int v) => UInt32.Box(v);
 
         public override bool Equals(object obj)
         {
@@ -339,11 +338,11 @@ namespace system
 
             public override int Get() => (int) a[i];
             public override int VolatileGet() =>
-                Util.JavaUnsafe.getIntVolatile(a, Util.ElementOffset32(i));
+                JavaUnsafe.Obj.getIntVolatile(a, JavaUnsafe.ElementOffset32(i));
 
             public override void Set(int v) => a[i] = (uint) v;
             public override void VolatileSet(int v) =>
-                Util.JavaUnsafe.putIntVolatile(a, Util.ElementOffset32(i), v);
+                JavaUnsafe.Obj.putIntVolatile(a, JavaUnsafe.ElementOffset32(i), v);
         }
 
     }

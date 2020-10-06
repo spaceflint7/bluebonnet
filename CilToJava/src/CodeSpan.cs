@@ -27,8 +27,37 @@ namespace SpaceFlint.CilToJava
                                         new JavaMethodRef("Sizeof" + CilMain.EXCLAMATION,
                                                 JavaType.IntegerType, CilType.SystemTypeType));
                     code.StackMap.PopStack(CilMain.Where);  // generic type
-                    code.StackMap.PushStack(JavaType.IntegerType);
+                    code.StackMap.PushStack(CilType.From(JavaType.IntegerType));
                     return;
+                }
+                else if (! myType.IsReference)
+                {
+                    // if the compiler inserted a typeof(primitive) instruction,
+                    // then we need to replace it with a load constant
+                    int size = -1;
+                    if (myType.Category == 2)   // Double, Int64, UInt64
+                        size = 8;
+                    else
+                    {
+                        switch (myType.PrimitiveType)
+                        {
+                            case TypeCode.Single: case TypeCode.UInt32: case TypeCode.Int32:
+                                size = 4;
+                                break;
+                            case TypeCode.UInt16: case TypeCode.Int16: case TypeCode.Char:
+                                size = 2;
+                                break;
+                            case TypeCode.Byte: case TypeCode.SByte: case TypeCode.Boolean:
+                                size = 1;
+                                break;
+                        }
+                    }
+                    if (size != -1)
+                    {
+                        code.NewInstruction(0x12 /* ldc */, null, size);
+                        code.StackMap.PushStack(CilType.From(JavaType.IntegerType));
+                        return;
+                    }
                 }
             }
             throw new InvalidProgramException();
@@ -168,6 +197,16 @@ namespace SpaceFlint.CilToJava
                 if (fromType.Equals(JavaStackMap.Null))
                     return true;
 
+                    #if false
+                if (    fromType.JavaName == "system.Void.Pointer"
+                     && (! intoType.HasGenericParameters)
+                     && intoType.GenericParameters != null)
+                {
+                    code.NewInstruction(0xC0 /* checkcast */, SpanType, null);
+                    return true;
+                }
+                    #endif
+
                 // allow assignment of native int (presumably zero)
                 bool callAssign = false;
                 bool pushNullType = true;
@@ -205,12 +244,35 @@ namespace SpaceFlint.CilToJava
 
                     code.NewInstruction(0xC0 /* checkcast */, SpanType, null);
 
-                    code.StackMap.PopStack(CilMain.Where);  // null type
+                    code.StackMap.PopStack(CilMain.Where);  // type argument
                     return true;
                 }
 
-
                 throw new Exception($"bad assignment of '{fromType.JavaName}' into pointer of '{intoType.GenericParameters[0].JavaName}'");
+            }
+            return false;
+        }
+
+
+
+        public static bool AddressArray(CilType elemType, CilType spanType, JavaCode code)
+        {
+            if (    spanType != null && spanType.Equals(SpanType)
+                 && elemType.ArrayRank == 0 && (! elemType.Equals(SpanType)))
+            {
+                GenericUtil.LoadMaybeGeneric(elemType, code);
+
+                code.NewInstruction(0xB8 /* invokestatic */, SpanType,
+                                    new JavaMethodRef("AssignArray" + CilMain.EXCLAMATION,
+                                        CilType.SystemValueType, JavaType.ObjectType,
+                                            JavaType.IntegerType, CilType.SystemTypeType));
+
+                code.NewInstruction(0xC0 /* checkcast */, SpanType, null);
+
+                code.StackMap.PopStack(CilMain.Where);  // type argument
+                code.StackMap.PushStack(spanType);
+
+                return true;
             }
             return false;
         }
@@ -289,7 +351,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public static void CompareEq(JavaType stackTop, JavaType stackTop2,
+        public static byte CompareEq(JavaType stackTop, JavaType stackTop2,
                                      Mono.Cecil.Cil.Instruction cilInst, JavaCode code)
         {
             if (    stackTop.Equals(SpanType)
@@ -321,6 +383,13 @@ namespace SpaceFlint.CilToJava
                 code.NewInstruction(0x58 /* pop2 */, null, null);
                 code.NewInstruction(0x01 /* aconst_null */, null, null);
             }
+
+            else if (CompareGtLt(stackTop, stackTop2, code))
+            {
+                return 0x99; // ifeq == zero
+            }
+
+            return 0;
         }
 
 
@@ -340,6 +409,59 @@ namespace SpaceFlint.CilToJava
 
                 return true;
             }
+            return false;
+        }
+
+
+
+        public static bool ExplicitCast(MethodReference methodRef, JavaCode code)
+        {
+            if (    methodRef.HasThis || methodRef.Name != "op_Explicit"
+                 || methodRef.Parameters.Count != 1)
+            {
+                // we only handle op_Explicit methods which have one parameter
+                return false;
+            }
+
+            var stackTop = code.StackMap.PopStack(CilMain.Where);
+
+            if (    stackTop.Equals(SpanType)
+                 && methodRef.ReturnType.IsPrimitive
+                 && methodRef.ReturnType.Name == "IntPtr"
+                 && methodRef.Parameters[0].ParameterType.Name == "Void*")
+            {
+                // translate call from
+                //      System.IntPtr System.IntPtr::op_Explicit(System.Void*)
+                // to - long system.runtime.compilerservices.VoidHelpers
+
+                code.NewInstruction(0xB8 /* invokestatic */,
+                        new JavaType(0, 0, "system.runtime.compilerservices.VoidHelper"),
+                        new JavaMethodRef("SpanToIntPtr",
+                                          JavaType.LongType, CilType.SystemValueType));
+
+                code.StackMap.PushStack(CilType.From(JavaType.LongType));
+                return true;
+            }
+
+            if (    stackTop.Equals(JavaType.LongType)
+                 && methodRef.ReturnType.IsPointer
+                 && methodRef.ReturnType.Name == "Void*"
+                 && methodRef.Parameters[0].ParameterType.Name == "IntPtr")
+            {
+                // translate call from
+                //      System.IntPtr System.IntPtr::op_Explicit(System.Void*)
+                // to - long system.runtime.compilerservices.VoidHelpers
+
+                code.NewInstruction(0xB8 /* invokestatic */,
+                        new JavaType(0, 0, "system.runtime.compilerservices.VoidHelper"),
+                        new JavaMethodRef("IntPtrToSpan",
+                                          CilType.SystemValueType, JavaType.LongType));
+
+                code.StackMap.PushStack(SpanType);
+                return true;
+            }
+
+            code.StackMap.PushStack(stackTop);
             return false;
         }
 

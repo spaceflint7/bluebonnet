@@ -30,8 +30,15 @@ System.OutOfMemoryException
 System.OperationCanceledException
 System.Predicate`*
 System.PlatformNotSupportedException
+System.UnhandledExceptionEventArgs
+System.UnhandledExceptionEventHandler
 System.Version
 System.RankException
+
+System.StringComparer
+System.CultureAwareComparer
+System.OrdinalComparer
+System.IWellKnownStringEqualityComparer
 
 System.DivideByZeroException
 
@@ -46,6 +53,7 @@ System.IEquatable`1
 System.IFormattable
 System.IFormatProvider
 System.InvalidCastException
+System.IServiceProvider
 
 System.Nullable`*
 
@@ -66,6 +74,7 @@ System.Collections.StructuralComparisons
 System.Collections.StructuralEqualityComparer
 System.Collections.DictionaryEntry
 
+System.Collections.ObjectModel.Collection`1
 System.Collections.ObjectModel.ReadOnlyCollection`1
 
 System.Collections.HashHelpers
@@ -106,6 +115,7 @@ System.Runtime.InteropServices._Type
 System.Runtime.InteropServices._MemberInfo
 System.Runtime.InteropServices._FieldInfo
 System.Runtime.InteropServices._EventInfo
+System.Runtime.InteropServices._ParameterInfo
 System.Runtime.InteropServices._PropertyInfo
 System.Runtime.InteropServices._MethodBase
 System.Runtime.InteropServices._MethodInfo
@@ -119,6 +129,7 @@ System.Configuration.Assemblies.AssemblyVersionCompatibility
 
 System.Runtime.Serialization.ISerializable
 System.Runtime.Serialization.IDeserializationCallback
+System.Runtime.Serialization.IObjectReference
 System.Runtime.Serialization.SerializationInfo
 System.Runtime.Serialization.StreamingContext
 System.Runtime.Serialization.SerializationException
@@ -158,6 +169,7 @@ System.Reflection.IReflect
 System.Reflection.MemberInfo
 System.Reflection.FieldInfo
 System.Reflection.EventInfo
+System.Reflection.ParameterInfo
 System.Reflection.PropertyInfo
 System.Reflection.MethodInfo
 System.Reflection.ConstructorInfo

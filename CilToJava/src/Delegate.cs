@@ -130,20 +130,38 @@ namespace SpaceFlint.CilToJava
 
             void GenerateInvoke(JavaMethod method, CilType dlgType, JavaType ifcType)
             {
+                var delegateType = new JavaType(0, 0, "system.Delegate");
+
                 var code = method.Code = new JavaCode();
                 code.Method = method;
                 code.Instructions = new List<Instruction>();
                 code.StackMap = new JavaStackMap();
 
+                code.StackMap.SetLocal(0, dlgType);
+                int index = 1;
+                for (int i = 0; i < method.Parameters.Count; i++)
+                {
+                    var paramType = (CilType) method.Parameters[i].Type;
+                    code.StackMap.SetLocal(index, paramType);
+                    index += paramType.Category;
+                }
+                code.StackMap.SaveFrame((ushort) 0, false, CilMain.Where);
+
+                //
+                // step 1, call the target method through the interface reference
+                // stored in the 'invokable' field of the system.Delegate class
+                //
+
                 code.NewInstruction(0x19 /* aload_0 */, null, (int) 0);
-                code.NewInstruction(0xB4 /* getfield */,
-                                    new JavaType(0, 0, "system.Delegate"),
+                code.NewInstruction(0xB4 /* getfield */, delegateType,
                                     new JavaFieldRef("invokable", JavaType.ObjectType));
 
                 code.NewInstruction(0xC0 /* checkcast */, ifcType, null);
                 code.StackMap.PushStack(JavaType.ObjectType);
 
-                int index = 1;
+                // push method parameters 'invokeinterface'
+
+                index = 1;
                 for (int i = 0; i < method.Parameters.Count; i++)
                 {
                     var paramType = (CilType) method.Parameters[i].Type;
@@ -181,6 +199,14 @@ namespace SpaceFlint.CilToJava
                 code.StackMap.ClearStack();
                 code.StackMap.PushStack(returnType);
 
+                // check if this delegate has a 'following' delegate,
+                // attached via system.MulticastDelegate.CombineImpl
+
+                code.NewInstruction(0x19 /* aload_0 */, null, (int) 0);
+                code.NewInstruction(0xB4 /* getfield */, delegateType,
+                                    new JavaFieldRef("following", delegateType));
+                code.NewInstruction(0xC7 /* ifnonnull */, null, (ushort) 1);
+
                 if (returnType.IsGenericParameter && (! returnType.IsByReference))
                 {
                     GenericUtil.LoadMaybeGeneric(
@@ -209,6 +235,59 @@ namespace SpaceFlint.CilToJava
 
                 code.NewInstruction(returnType.ReturnOpcode, null, index);
                 code.StackMap.PopStack(CilMain.Where);
+
+                //
+                // step 2
+                //
+                // if this delegate has a 'following' delegate, then we need to
+                // call it, but first get rid of the return value on the stack
+                //
+
+                byte popOpcode;
+                if (returnType.Equals(JavaType.VoidType))
+                    popOpcode = 0x00; // nop
+                else // select 0x57 pop, or 0x58 pop2
+                {
+                    var adjustedReturnType =
+                            IsPrimitive(returnType) ? JavaType.ObjectType : returnType;
+                    code.StackMap.PushStack(adjustedReturnType);
+                    popOpcode = (byte) (0x56 + returnType.Category);
+                }
+                code.NewInstruction(popOpcode, null, null, (ushort) 1);
+                code.StackMap.SaveFrame((ushort) 1, true, CilMain.Where);
+
+                // now call the Invoke method on the 'following' delegate
+
+                code.NewInstruction(0x19 /* aload_0 */, null, (int) 0);
+                code.NewInstruction(0xB4 /* getfield */, delegateType,
+                                    new JavaFieldRef("following", delegateType));
+                code.NewInstruction(0xC0 /* checkcast */, dlgType, null);
+
+                // push all method parameters for 'invokevirtual'
+
+                index = 1;
+                for (int i = 0; i < method.Parameters.Count; i++)
+                {
+                    var paramType = (CilType) method.Parameters[i].Type;
+                    code.NewInstruction(paramType.LoadOpcode, null, index);
+
+                    if (paramType.IsGenericParameter && (! paramType.IsByReference))
+                    {
+                        // invoke the helper method which identifies our boxed
+                        // primitives and re-boxes them as java boxed values.
+                        // see also: GenericType::DelegateParameterin baselib.
+                        GenericUtil.LoadMaybeGeneric(
+                                        paramType.GetMethodGenericParameter(), code);
+                        code.NewInstruction(0xB8 /* invokestatic */,
+                                            SystemDelegateUtilType, DelegateParameterMethod);
+                    }
+                    index += paramType.Category;
+                }
+
+                code.NewInstruction(0xB6 /* invokevirtual */, dlgType, method);
+
+                code.NewInstruction(returnType.ReturnOpcode, null, index);
+                code.StackMap.ClearStack();
 
                 code.MaxStack = code.StackMap.GetMaxStackSize(CilMain.Where);
                 code.MaxLocals = index;

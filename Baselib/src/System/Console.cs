@@ -10,6 +10,9 @@ namespace system
         //
 
         private static object s_InternalSyncObject;
+        private static bool inputReaderInitialized;
+        private static bool outputWriterInitialized;
+        private static bool errorWriterInitialized;
 
         private static System.IO.TextReader inputReader;
         private static System.IO.TextWriter outputWriter;
@@ -19,9 +22,8 @@ namespace system
         {
             get
             {
-                bool initialized = false;
                 return System.Threading.LazyInitializer.EnsureInitialized<System.IO.TextReader>(
-                    ref inputReader, ref initialized, ref s_InternalSyncObject, () =>
+                    ref inputReader, ref inputReaderInitialized, ref s_InternalSyncObject, () =>
                     {
                         var jstream = new java.io.FileInputStream(java.io.FileDescriptor.@in);
                         var nstream = new system.io.FileStream(
@@ -63,9 +65,9 @@ namespace system
 
 
         public static System.IO.TextWriter GetTextWriter(ref System.IO.TextWriter theWriter,
+                                                         ref bool initialized,
                                                          java.io.PrintStream javastream)
         {
-            bool initialized = false;
             return System.Threading.LazyInitializer.EnsureInitialized<System.IO.TextWriter>(
                 ref theWriter, ref initialized, ref s_InternalSyncObject, () =>
                 {
@@ -74,10 +76,12 @@ namespace system
         }
 
         public static System.IO.TextWriter Out
-            => GetTextWriter(ref outputWriter, java.lang.System.@out /*java.io.FileDescriptor.@out*/);
+            => GetTextWriter(ref outputWriter, ref outputWriterInitialized,
+                             java.lang.System.@out /*java.io.FileDescriptor.@out*/);
 
         public static System.IO.TextWriter Error
-            => GetTextWriter(ref errorWriter, java.lang.System.@err /*java.io.FileDescriptor.@err*/);
+            => GetTextWriter(ref errorWriter, ref errorWriterInitialized,
+                             java.lang.System.@err /*java.io.FileDescriptor.@err*/);
 
         public static bool IsInputRedirected => true;
         public static bool IsOutputRedirected => true;
@@ -267,11 +271,7 @@ namespace system
 
         public override System.Text.Encoding Encoding => System.Text.Encoding.Default;
 
-        public override void Write(char ch)
-        {
-            stream.print(ch);
-            stream.flush();
-        }
+        public override void Write(char ch) => stream.print(ch);
 
         public override void WriteLine()
         {

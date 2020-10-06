@@ -175,12 +175,13 @@ namespace SpaceFlint.CilToJava
                     if (varType.IsValueClass || varType.IsPointer)
                     {
                         bool isByReference = varType.IsByReference;
+                        bool isPointer = varType.IsPointer;
 
-                        if (varType.IsPointer)
+                        if (isPointer)
                             varType = CilType.MakeSpanOf(varType);
 
                         // value classes are allocated at the top of the method
-                        if (! isByReference)
+                        if ((! isByReference) || isPointer)
                         {
                             ValueUtil.InitLocal(varType, nextIndex, code);
                             varType = varType.MakeClonedAtTop();

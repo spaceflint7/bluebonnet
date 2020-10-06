@@ -326,8 +326,10 @@ namespace SpaceFlint.CilToJava
         {
             if (stackTop.IsReference || stackTop2.IsReference)
             {
-                CodeSpan.CompareEq(stackTop, stackTop2, cilInst, code);
-                return 0xA5; // if_acmpeq (reference)
+                byte cmpOp = CodeSpan.CompareEq(stackTop, stackTop2, cilInst, code);
+                if (cmpOp == 0)
+                    cmpOp = 0xA5; // if_acmpeq (reference)
+                return cmpOp;
             }
 
             if (stackTop2.IsIntLike && (    stackTop.PrimitiveType == TypeCode.Int32
@@ -534,6 +536,7 @@ namespace SpaceFlint.CilToJava
                 if (    stackTop.PrimitiveType == TypeCode.Int64
                      || stackTop.PrimitiveType == TypeCode.UInt64)
                 {
+                    CilMain.MakeRoomForCategory2ValueOnStack(code, JavaType.LongType);
                     code.NewInstruction(0x09 /* lconst_0 (long) */, null, null);
                     code.NewInstruction(0x94 /* lcmp (long) */, null, null);
                 }
@@ -606,7 +609,11 @@ namespace SpaceFlint.CilToJava
                     // then CodeArrays.CheckCast already generated a call to
                     // system.Array.CheckCast in baselib, and we are done here
 
-                    code.NewInstruction(0xC0 /* checkcast */, castClass, null);
+                    if (! castType.IsGenericParameter)
+                    {
+                        // avoid cast since T[] might be a primitive array
+                        code.NewInstruction(0xC0 /* checkcast */, castClass, null);
+                    }
                     code.StackMap.PushStack(castClass);
                 }
 

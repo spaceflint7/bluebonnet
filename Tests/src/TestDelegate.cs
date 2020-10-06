@@ -16,6 +16,8 @@ namespace Tests
             TestInterfaceDelegate();
             TestGenericClassWithDelegate();
             Test4();
+            Test5();
+            Test6();
         }
 
 
@@ -203,6 +205,42 @@ namespace Tests
             dlg(1, null);
         }
 
+        delegate void Test5Delegate(string s);
+        void Test5()
+        {
+            Test5Delegate hiDel, byeDel, multiDel, multiMinusHiDel;
+            hiDel = Hello;
+            byeDel = Goodbye;
+            multiDel = hiDel + byeDel;
+            multiMinusHiDel = multiDel - hiDel;
+
+            Console.Write("Invoking delegate hiDel:"); hiDel("A");
+            Console.Write("Invoking delegate byeDel:"); byeDel("B");
+            Console.Write("Invoking delegate multiDel:"); multiDel("C");
+            Console.Write("Invoking delegate multiMinusHiDel:"); multiMinusHiDel("D");
+
+            multiDel = hiDel + hiDel + byeDel;
+            multiMinusHiDel = multiDel - hiDel;
+            Console.Write("Invoking delegate multiDel:"); multiDel("C");
+            Console.Write("Invoking delegate multiMinusHiDel:"); multiMinusHiDel("D");
+
+            void Hello(string s) => Console.WriteLine($"  Hello, {s}!");
+            void Goodbye(string s) => Console.WriteLine($"  Goodbye, {s}!");
+        }
+
+        enum MyTypeCode : short { Nothing, Double };
+        void Test6()
+        {
+            var b = Test6a((a) => { Console.Write(a); return a; }, TypeCode.Single);
+            Console.Write(b);
+            TypeCode Test6a(System.Func<TypeCode, TypeCode> act, TypeCode a) => act(a);
+
+            var c = Test6b((a) => { Console.Write(a); return a; }, MyTypeCode.Double);
+            Console.Write(c);
+            MyTypeCode Test6b(System.Func<MyTypeCode, MyTypeCode> act, MyTypeCode a) => act(a);
+
+            Console.WriteLine();
+        }
     }
 
 }

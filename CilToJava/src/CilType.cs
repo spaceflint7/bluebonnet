@@ -112,7 +112,11 @@ namespace SpaceFlint.CilToJava
                 Flags |= BYREF;
 
             else if (fromType.IsPointer || fromType.IsPinned)
+            {
+                if (fromType.FullName == "System.Void*")
+                    throw CilMain.Where.Exception($"Void* pointers are not supported");
                 Flags |= POINTER;
+            }
 
             else if (fromType.IsArray)
             {
@@ -699,12 +703,34 @@ namespace SpaceFlint.CilToJava
             SetBoxedFlags(isLocal);
         }
 
-        public virtual bool IsBoxedReference => (ClassName == "system.Reference");
+        protected virtual string BoxedClassName => ClassName;
 
-        public virtual bool IsBoxedIntPtr
-            => (ClassName == "system.IntPtr" || ClassName == "system.UIntPtr");
+        public bool IsBoxedReference => (BoxedClassName == "system.Reference");
 
-        private JavaType ThisOrEnum => (UnboxedType.IsEnum ? SystemEnumType : this);
+        public bool IsBoxedIntPtr => (    BoxedClassName == "system.IntPtr"
+                                       || BoxedClassName == "system.UIntPtr");
+
+        protected JavaType GetBaseClass(JavaType cls)
+        {
+            var name = cls.ClassName;
+            if (IsBoxedIntPtr || name == "system.UInt64")
+            {
+                // IntPtr, UIntPtr, UInt64 -> Int64
+                name = "system.Int64";
+            }
+            else if (name == "system.UInt32")
+                name = "system.Int32";
+            else if (name == "system.UInt16")
+                name = "system.Int16";
+            else if (name == "system.Byte")
+                name = "system.SByte";
+            else
+                return cls;
+            return new JavaType(0, 0, name);
+        }
+
+        private JavaType ThisOrEnum
+            => (UnboxedType.IsEnum ? SystemEnumType : GetBaseClass(this));
 
         protected JavaType UnboxedTypeInMethod =>
               UnboxedType.IsIntLike ? JavaType.IntegerType
@@ -742,15 +768,20 @@ namespace SpaceFlint.CilToJava
                 CilMain.MakeRoomForCategory2ValueOnStack(code);
         }
 
-        public virtual void SetValueOV(JavaCode code, bool isVolatile = false) =>
+        public virtual void SetValueOV(JavaCode code, bool isVolatile = false)
+        {
             code.NewInstruction(0xB6 /* invokevirtual */, ThisOrEnum,
                                 new JavaMethodRef(VolatileName("Set", isVolatile),
                                                     JavaType.VoidType, UnboxedTypeInMethod));
+        }
 
-        public virtual void SetValueVO(JavaCode code, bool isVolatile = false) =>
-                code.NewInstruction(0xB8 /* invokestatic */, ThisOrEnum,
-                                    new JavaMethodRef(VolatileName("Set", isVolatile),
-                                        JavaType.VoidType, UnboxedTypeInMethod, ThisOrEnum));
+        public virtual void SetValueVO(JavaCode code, bool isVolatile = false)
+        {
+            var thisOrEnum = ThisOrEnum;
+            code.NewInstruction(0xB8 /* invokestatic */, thisOrEnum,
+                                new JavaMethodRef(VolatileName("Set", isVolatile),
+                                    JavaType.VoidType, UnboxedTypeInMethod, thisOrEnum));
+        }
     }
 
 
@@ -766,10 +797,7 @@ namespace SpaceFlint.CilToJava
             ClassName = JavaName = "system.threading.ThreadLocal";
         }
 
-        public override bool IsBoxedReference => (OldClassName == "system.Reference");
-
-        public override bool IsBoxedIntPtr
-            => (OldClassName == "system.IntPtr" || OldClassName == "system.UIntPtr");
+        protected override string BoxedClassName => OldClassName;
 
         public override void BoxValue(JavaCode code) => throw new NotImplementedException();
 
@@ -779,7 +807,7 @@ namespace SpaceFlint.CilToJava
             code.NewInstruction(0xB6 /* invokevirtual */, this,
                                 new JavaMethodRef("get", JavaType.ObjectType));
             code.NewInstruction(0xC0 /* checkcast */, innerType, null);
-            return (UnboxedType.IsEnum ? SystemEnumType : innerType);
+            return (UnboxedType.IsEnum ? SystemEnumType : GetBaseClass(innerType));
         }
 
         public override void GetValue(JavaCode code, bool isVolatile = false)

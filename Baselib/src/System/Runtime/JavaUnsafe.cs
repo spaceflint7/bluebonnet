@@ -1,11 +1,11 @@
 
-namespace system
+namespace system.runtime.interopservices
 {
 
-    public static partial class Util
+    public static class JavaUnsafe
     {
 
-        public static sun.misc.Unsafe JavaUnsafe
+        public static sun.misc.Unsafe Obj
         {
             get
             {
@@ -100,14 +100,35 @@ namespace system
 
         static int[] ArrayBaseAndShift(java.lang.Class arrayClass)
         {
-            var @base = Util.JavaUnsafe.arrayBaseOffset(arrayClass);
-            var scale = Util.JavaUnsafe.arrayIndexScale(arrayClass);
+            var @base = Obj.arrayBaseOffset(arrayClass);
+            var scale = Obj.arrayIndexScale(arrayClass);
             if ((scale & (scale - 1)) != 0)
                 throw new System.NotSupportedException();
             var baseAndShift = new int[2];
             baseAndShift[0] = @base;
             baseAndShift[1] = 31 - java.lang.Integer.numberOfLeadingZeros(scale);
             return baseAndShift;
+        }
+
+
+
+        public static long FieldOffset(java.lang.Class theClass, java.lang.Class fldType)
+        {
+            int mask = java.lang.reflect.Modifier.STATIC
+                     | java.lang.reflect.Modifier.PUBLIC
+                     | java.lang.reflect.Modifier.PRIVATE
+                     | java.lang.reflect.Modifier.PROTECTED;
+            foreach (var fld in theClass.getDeclaredFields())
+            {
+                if ((fld.getModifiers() & mask) == java.lang.reflect.Modifier.PROTECTED)
+                {
+                    if (fld.getType() == fldType)
+                    {
+                        return Obj.objectFieldOffset(fld);
+                    }
+                }
+            }
+            throw new System.InvalidOperationException();
         }
 
 

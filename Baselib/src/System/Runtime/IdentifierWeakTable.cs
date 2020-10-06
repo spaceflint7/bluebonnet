@@ -50,8 +50,27 @@ namespace system.runtime.compilerservices
 
 
 
-        public static int GlobalGenerate(object trackedObject) => GlobalInstance.Generate(trackedObject);
+        public object GetObject(int id)
+        {
+            object obj = null;
+            javaLock.@lock();
+            try
+            {
+                var trackedObject = map.get(java.lang.Integer.valueOf(id));
+                if (trackedObject != null)
+                    obj = ((TrackedObject) trackedObject).get();
+            }
+            finally
+            {
+                javaLock.@unlock();
+            }
+            return obj;
+        }
 
+
+
+        public static int GlobalGenerate(object trackedObject) => GlobalInstance.Generate(trackedObject);
+        public static object GlobalGetObject(int id) => GlobalInstance.GetObject(id);
 
 
         [java.attr.RetainType] readonly java.util.concurrent.atomic.AtomicInteger nextId =

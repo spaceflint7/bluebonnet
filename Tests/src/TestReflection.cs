@@ -15,6 +15,8 @@ namespace Tests
             //TestAttributes();
             TestReflection1();
             TestGenericMethod();
+            TestFindType();
+            TestPrimitives();
         }
 
 
@@ -178,6 +180,33 @@ namespace Tests
             Console.WriteLine($"Method {method.Name} IsGenericMethod {method.IsGenericMethod} "
                             + $"IsGenericMethodDefinition {method.IsGenericMethodDefinition} "
                             + $"ContainsGenericParameters {method.ContainsGenericParameters}");
+        }
+
+
+
+        void TestFindType()
+        {
+            Console.WriteLine("Find Types: "
+                            + $"{Type.GetType("Tests.TestReflection")},"
+                            //+ $"{Type.GetType("Tests.testreflection", false, true)},"
+                            //+ $"{Type.GetType("System.Action`1[System.Int32]")},"
+                            );
+        }
+
+
+
+        void TestPrimitives()
+        {
+            char sep = '\0';
+            foreach (var ty in new Type[] { typeof(Boolean), typeof(Char), typeof(Int16), typeof(UInt16),
+                                        typeof(Int32), typeof(UInt32), typeof(Int64), typeof(UInt64),
+                                        typeof(Single), typeof(Double), typeof(IntPtr), typeof(UIntPtr),
+                                        typeof(Decimal), typeof(DateTime) })
+            {
+                if (sep == '\t') sep = '\n'; else sep = '\t';
+                Console.Write($"{sep}Type {ty,-16}{ty.IsPrimitive,5}, {Type.GetTypeCode(ty),-15}");
+            }
+            Console.WriteLine();
         }
 
     }

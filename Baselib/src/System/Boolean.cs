@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -15,12 +17,12 @@ namespace system
         public static Boolean Box(bool[] a, int i) => new Boolean.InArray(a, i);
 
         public virtual int Get() => v;
-        public virtual int VolatileGet() =>
-            Util.JavaUnsafe.getIntVolatile(this, ValueOffset);
+        public virtual int VolatileGet()
+            => JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
 
         public virtual void Set(int v) => this.v = (v != 0) ? 1 : 0;
-        public virtual void VolatileSet(int v) =>
-            Util.JavaUnsafe.putIntVolatile(this, ValueOffset, v);
+        public virtual void VolatileSet(int v)
+            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, v);
 
         public static void Set(int v, Boolean o) => o.Set(v);
         public static void VolatileSet(int v, Boolean o) => o.VolatileSet(v);
@@ -77,8 +79,9 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Boolean);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Boolean),
+                                                java.lang.Integer.TYPE);
                 }
                 return _ValueOffset;
             }

@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -13,14 +15,15 @@ namespace system
 
         public static Int16 Box(int v) => new Int16() { v = (short) v };
         public static Int16 Box(short[] a, int i) => new Int16.InArray(a, i);
+        protected virtual ValueType Clone(int v) => Int16.Box(v);
 
         public virtual int Get() => v;
         public virtual int VolatileGet() =>
-            Util.JavaUnsafe.getIntVolatile(this, ValueOffset);
+            JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
 
         public virtual void Set(int v) => this.v = (short) v;
         public virtual void VolatileSet(int v) =>
-            Util.JavaUnsafe.putIntVolatile(this, ValueOffset, v);
+            JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, v);
 
         public static void Set(int v, Int16 o) => o.Set(v);
         public static void VolatileSet(int v, Int16 o) => o.VolatileSet(v);
@@ -77,7 +80,7 @@ namespace system
 
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((Int16) into).Set(Get());
-        ValueType ValueMethod.Clone() => Box(Get());
+        ValueType ValueMethod.Clone() => Clone(Get());
 
 
 
@@ -87,8 +90,9 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Int16);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Int16),
+                                                java.lang.Short.TYPE);
                 }
                 return _ValueOffset;
             }
@@ -197,9 +201,7 @@ namespace system
 
         new public static UInt16 Box(int v) => new UInt16() { v = (short) v };
         public static UInt16 Box(ushort[] a, int i) => new UInt16.InArray(a, i);
-
-        public static void Set(int v, UInt16 o) => o.Set(v);
-        public static void VolatileSet(int v, UInt16 o) => throw new System.NotSupportedException();
+        protected override ValueType Clone(int v) => UInt16.Box(v);
 
         public override bool Equals(object obj)
         {

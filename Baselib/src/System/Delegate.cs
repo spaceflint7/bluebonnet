@@ -8,19 +8,45 @@ namespace system
 
         [java.attr.RetainType] protected object _target;
 
-        // below field referenced by generated Invoke() methods.  do not change name
+        // below fields referenced by generated Invoke() methods.  do not change names
         [java.attr.RetainType] protected object invokable;
+        [java.attr.RetainType] protected Delegate following;
 
 
 
         protected Delegate(object argTarget, object argInvokable)
         {
-            if (argInvokable == null)
-                throw new System.ArgumentNullException("invokable");
+            ThrowHelper.ThrowIfNull(argInvokable);
 
             _target = argTarget;
             invokable = argInvokable;
         }
+
+
+
+        public override bool Equals(object obj)
+        {
+            var d = obj as Delegate;
+            return (d != null && _target == d._target && invokable == d.invokable);
+        }
+
+        public override int GetHashCode() => 1;
+
+
+
+        public static Delegate Combine(Delegate a, Delegate b)
+            => object.ReferenceEquals(a, null) ? b : a.CombineImpl(b);
+
+        public static Delegate Remove(Delegate source, Delegate value)
+            =>    object.ReferenceEquals(source, null) ? null
+                : object.ReferenceEquals(value, null) ? source
+                : source.RemoveImpl(value);
+
+        protected virtual Delegate CombineImpl(Delegate d)
+            => throw new System.NotSupportedException();
+
+        protected virtual Delegate RemoveImpl(Delegate d)
+            => d.Equals(this) ? null : this;
 
 
 
@@ -35,10 +61,96 @@ namespace system
     [System.Serializable]
     public abstract class MulticastDelegate : Delegate
     {
+        [java.attr.RetainType] protected MulticastDelegate fromDelegate;
 
         protected MulticastDelegate(object argTarget, object argInvokable)
             : base(argTarget, argInvokable)
         {
+        }
+
+
+
+        public override bool Equals(object obj)
+        {
+            if (    object.ReferenceEquals(fromDelegate, obj)
+                 && (! object.ReferenceEquals(fromDelegate, null)))
+            {
+                return true;
+            }
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode() => base.GetHashCode();
+
+
+
+        protected override sealed Delegate CombineImpl(Delegate other)
+        {
+            if (object.ReferenceEquals(other, null))
+                return this;
+
+            if (GetType() != other.GetType())
+                throw new System.ArgumentException();
+
+            var dlg1 = (MulticastDelegate) MemberwiseClone();
+            if (object.ReferenceEquals(dlg1.fromDelegate, null))
+                dlg1.fromDelegate = this;
+
+            var dlg2 = (MulticastDelegate) other;
+
+            if (dlg1.following == null)
+            {
+                var new2 = (MulticastDelegate) dlg2.MemberwiseClone();
+                if (object.ReferenceEquals(new2.fromDelegate, null))
+                    new2.fromDelegate = dlg2;
+
+                dlg1.following = new2;
+            }
+            else
+            {
+                var following = (MulticastDelegate) dlg1.following;
+                dlg1.following = (MulticastDelegate) following.CombineImpl(other);
+            }
+
+            return dlg1;
+        }
+
+
+
+        protected override sealed Delegate RemoveImpl(Delegate other)
+        {
+            var dlgToRemove = other as MulticastDelegate;
+            if (object.ReferenceEquals(dlgToRemove, null))
+                return this;
+
+            var oldFollowing = (MulticastDelegate) this.following;
+
+            if (    object.ReferenceEquals(fromDelegate, dlgToRemove)
+                 || object.ReferenceEquals(fromDelegate, dlgToRemove.fromDelegate))
+            {
+                return oldFollowing;
+            }
+
+            if (object.ReferenceEquals(oldFollowing, null))
+                return this;
+
+            Delegate newFollowing;
+
+            if (    object.ReferenceEquals(oldFollowing.fromDelegate, dlgToRemove)
+                 || object.ReferenceEquals(oldFollowing.fromDelegate, dlgToRemove.fromDelegate))
+            {
+                newFollowing = oldFollowing.following;
+            }
+            else
+            {
+                newFollowing = oldFollowing.RemoveImpl(other);
+                if (object.ReferenceEquals(newFollowing, oldFollowing))
+                    return this;
+            }
+
+            var newDelegate = (MulticastDelegate) MemberwiseClone();
+            newDelegate.following = newFollowing;
+            return newDelegate;
         }
 
     }
@@ -200,11 +312,31 @@ namespace system
                     if (object.ReferenceEquals(proxyType, typeof(system.Double)))
                         arg = java.lang.Double.valueOf((double) doubleArg.Get());
                     break;
+
+                case system.Enum enumArg:
+                    if (proxyType.IsEnum && object.ReferenceEquals(proxyType, arg.GetType()))
+                    {
+                        var val = enumArg.GetLong();
+                        var typ = ((system.RuntimeType) proxyType.GetEnumUnderlyingType())
+                                                                 .JavaClassForArray();
+                        if (typ == java.lang.Integer.TYPE)
+                            arg = java.lang.Integer.valueOf((int) val);
+                        else if (typ == java.lang.Short.TYPE)
+                            arg = java.lang.Short.valueOf((short) val);
+                        else if (typ == java.lang.Byte.TYPE)
+                            arg = java.lang.Byte.valueOf((sbyte) val);
+                        else if (typ == java.lang.Long.TYPE)
+                            arg = java.lang.Long.valueOf(val);
+                        else if (typ == java.lang.Character.TYPE)
+                            arg = java.lang.Character.valueOf((char) val);
+                        else if (typ == java.lang.Boolean.TYPE)
+                            arg = java.lang.Boolean.valueOf(val != 0 ? true : false);
+                    }
+                    break;
             }
 
             return arg;
         }
-
 
 
         public static object DelegateReturnValue(object val, System.Type proxyType)
@@ -212,8 +344,11 @@ namespace system
             switch (val)
             {
                 case java.lang.Boolean boolVal:
+                    var vBool = boolVal.booleanValue() ? 1 : 0;
                     if (object.ReferenceEquals(proxyType, typeof(system.Boolean)))
-                        val = system.Boolean.Box(boolVal.booleanValue() ? 1 : 0);
+                        val = system.Boolean.Box(vBool);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box((long) vBool, proxyType);
                     break;
 
                 case java.lang.Byte byteVal:
@@ -222,11 +357,16 @@ namespace system
                         val = system.SByte.Box(vByte);
                     else if (object.ReferenceEquals(proxyType, typeof(system.Byte)))
                         val = system.Byte.Box(vByte);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box((long) vByte, proxyType);
                     break;
 
                 case java.lang.Character charVal:
+                    var vChar = charVal.charValue();
                     if (object.ReferenceEquals(proxyType, typeof(system.Char)))
-                        val = system.Char.Box(charVal.charValue());
+                        val = system.Char.Box(vChar);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box((long) vChar, proxyType);
                     break;
 
                 case java.lang.Short shortVal:
@@ -235,6 +375,8 @@ namespace system
                         val = system.Int16.Box(vShort);
                     else if (object.ReferenceEquals(proxyType, typeof(system.UInt16)))
                         val = system.UInt16.Box(vShort);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box((long) vShort, proxyType);
                     break;
 
                 case java.lang.Integer intVal:
@@ -243,6 +385,8 @@ namespace system
                         val = system.Int32.Box(vInt);
                     else if (object.ReferenceEquals(proxyType, typeof(system.UInt32)))
                         val = system.UInt32.Box(vInt);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box((long) vInt, proxyType);
                     break;
 
                 case java.lang.Long longVal:
@@ -251,6 +395,8 @@ namespace system
                         val = system.Int64.Box(vLong);
                     else if (object.ReferenceEquals(proxyType, typeof(system.UInt64)))
                         val = system.UInt64.Box(vLong);
+                    else if (proxyType.IsEnum)
+                        val = system.Enum.Box(vLong, proxyType);
                     break;
 
                 case java.lang.Float floatVal:

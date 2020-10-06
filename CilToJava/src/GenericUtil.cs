@@ -241,10 +241,15 @@ namespace SpaceFlint.CilToJava
 
         public static string MakeGenericSignature(TypeDefinition fromType, string superName)
         {
-            string signature = "<";
-            foreach (var prm in fromType.GenericParameters)
-                signature += prm.Name + ":Ljava/lang/Object;";
-            signature += ">" + ClassSignature(superName, fromType.BaseType);
+            string signature = "";
+            if (fromType.GenericParameters.Count > 0)
+            {
+                signature = "<";
+                foreach (var prm in fromType.GenericParameters)
+                    signature += prm.Name + ":Ljava/lang/Object;";
+                signature += ">";
+            }
+            signature += ClassSignature(superName, fromType.BaseType);
             if (fromType.HasInterfaces)
             {
                 foreach (var ifc in fromType.Interfaces)

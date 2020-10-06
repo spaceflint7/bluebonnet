@@ -181,6 +181,14 @@ namespace SpaceFlint.CilToJava
             }
             else
             {
+                if (numDims == 1)
+                {
+                    var length = stackMap.PopStack(CilMain.Where);
+                    stackMap.PushStack(length);
+                    if (length.Equals(JavaType.LongType))
+                        CodeNumber.Conversion(code, Code.Conv_Ovf_I4);
+                }
+
                 code.NewInstruction(0xBC /* newarray */, null, elemType.NewArrayType);
 
                 while (numDims-- > 0)
@@ -377,7 +385,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public void Address(CilType arrayType)
+        public void Address(CilType arrayType, Mono.Cecil.Cil.Instruction inst)
         {
             stackMap.PopStack(CilMain.Where);       // index
 
@@ -387,6 +395,15 @@ namespace SpaceFlint.CilToJava
                 stackMap.PopStack(CilMain.Where);   // array
 
             var elemType = arrayType.AdjustRank(-arrayType.ArrayRank);
+
+            if (inst != null && inst.Next != null)
+            {
+                var (spanType, _) = locals.GetLocalFromStoreInst(
+                                        inst.Next.OpCode.Code, inst.Next.Operand);
+
+                if (CodeSpan.AddressArray(elemType, spanType, code))
+                    return;
+            }
 
             if (elemType.IsReference)
             {
@@ -463,7 +480,7 @@ namespace SpaceFlint.CilToJava
             {
                 Deref(numDims);
 
-                Address(elemType);
+                Address(elemType, null);
             }
 
             else

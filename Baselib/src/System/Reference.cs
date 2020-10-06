@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -14,17 +16,17 @@ namespace system
 
         public virtual object Get() => v;
         public virtual object VolatileGet() =>
-            Util.JavaUnsafe.getObjectVolatile(this, ValueOffset);
+            JavaUnsafe.Obj.getObjectVolatile(this, ValueOffset);
 
         public virtual void Set(object v) => this.v = v;
         public virtual void VolatileSet(object v) =>
-            Util.JavaUnsafe.putObjectVolatile(this, ValueOffset, v);
+            JavaUnsafe.Obj.putObjectVolatile(this, ValueOffset, v);
 
         public static void Set(object v, Reference o) => o.Set(v);
         public static void VolatileSet(object v, Reference o) => o.VolatileSet(v);
 
         public virtual bool CompareAndSwap(object expect, object update) =>
-            Util.JavaUnsafe.compareAndSwapObject(this, ValueOffset, expect, update);
+            JavaUnsafe.Obj.compareAndSwapObject(this, ValueOffset, expect, update);
 
 
 
@@ -58,8 +60,9 @@ namespace system
             {
                 if (_ValueOffset == -1)
                 {
-                    var cls = (java.lang.Class) typeof(Reference);
-                    _ValueOffset = Util.JavaUnsafe.objectFieldOffset(cls.getDeclaredFields()[0]);
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Reference),
+                                                (java.lang.Class) typeof(java.lang.Object));
                 }
                 return _ValueOffset;
             }
@@ -87,14 +90,14 @@ namespace system
 
             public override object Get() => java.lang.reflect.Array.get(a, i);
             public override object VolatileGet()
-                => Util.JavaUnsafe.getObjectVolatile(a, Util.ElementOffsetObj(i));
+                => JavaUnsafe.Obj.getObjectVolatile(a, JavaUnsafe.ElementOffsetObj(i));
 
             public override void Set(object v) => java.lang.reflect.Array.set(a, i, v);
             public override void VolatileSet(object v)
-                => Util.JavaUnsafe.putObjectVolatile(a, Util.ElementOffsetObj(i), v);
+                => JavaUnsafe.Obj.putObjectVolatile(a, JavaUnsafe.ElementOffsetObj(i), v);
 
-            public override bool CompareAndSwap(object expect, object update) =>
-                Util.JavaUnsafe.compareAndSwapObject(a, Util.ElementOffsetObj(i), expect, update);
+            public override bool CompareAndSwap(object expect, object update)
+                => JavaUnsafe.Obj.compareAndSwapObject(a, JavaUnsafe.ElementOffsetObj(i), expect, update);
         }
 
     }

@@ -23,6 +23,7 @@ namespace Tests
             TestGenericOverload2();
             TestGenericInterface2();
             TestGenericOverload3();
+            TestGenericMethodWithEnum();
         }
 
         //
@@ -239,6 +240,22 @@ namespace Tests
             c2.DoIt(ref bFalse, ref vZero);
             c3.DoIt(ref bFalse, ref oZero);
             Console.WriteLine();
+        }
+
+        //
+        // TestGenericMethodWithEnum
+        //
+
+        void TestGenericMethodWithEnum()
+        {
+            Console.WriteLine(TestGenericMethodWithEnum_<TypeCode>(TypeCode.Int32));
+
+            T TestGenericMethodWithEnum_<T>(T a)
+            {
+                Console.Write(a);
+                Console.Write(",");
+                return a;
+            }
         }
 
     }

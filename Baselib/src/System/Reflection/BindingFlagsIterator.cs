@@ -51,10 +51,10 @@ namespace system.reflection
             // check if iteration is required on base hierarchy
             //
 
-            RuntimeType stopAtType = null;
+            bool loopOnce = false;
             if ((bindingAttr & BindingFlags.DeclaredOnly) != 0)
             {
-                stopAtType = initialType;
+                loopOnce = true;
                 bindingAttr &= ~BindingFlags.DeclaredOnly;
             }
 
@@ -71,11 +71,11 @@ namespace system.reflection
             switch (memberType)
             {
                 case MemberTypes.Method:
-                    RunMethods(modifierMask, modifierValue, initialType, stopAtType, callback);
+                    RunMethods(modifierMask, modifierValue, initialType, loopOnce, callback);
                     return;
 
                 case MemberTypes.Field:
-                    RunFields(modifierMask, modifierValue, initialType, stopAtType, callback);
+                    RunFields(modifierMask, modifierValue, initialType, loopOnce, callback);
                     return;
             }
 
@@ -87,10 +87,9 @@ namespace system.reflection
         //
 
         static void RunMethods(int modifierMask, int modifierValue,
-                               RuntimeType initialType, RuntimeType stopAtType,
+                               RuntimeType currentType, bool loopOnce,
                                System.Predicate<java.lang.reflect.AccessibleObject> callback)
         {
-            var currentType = initialType;
             for (;;)
             {
                 #pragma warning disable 0436
@@ -110,7 +109,7 @@ namespace system.reflection
                 }
 
                 currentType = (system.RuntimeType) currentType.BaseType;
-                if (currentType == stopAtType)
+                if (loopOnce || object.ReferenceEquals(currentType, null))
                     break;
             }
         }
@@ -120,12 +119,17 @@ namespace system.reflection
         //
 
         static void RunFields(int modifierMask, int modifierValue,
-                              RuntimeType initialType, RuntimeType stopAtType,
+                              RuntimeType currentType, bool loopOnce,
                               System.Predicate<java.lang.reflect.AccessibleObject> callback)
         {
-            var currentType = initialType;
+            // hide the couple of fields that Android adds in java.lang.Object
+            var objectType = typeof(Object);
+
             for (;;)
             {
+                if (object.ReferenceEquals(currentType, objectType))
+                    break;
+
                 java.lang.reflect.Field[] javaFields =
                     (java.lang.reflect.Field[]) (object)
                             currentType.JavaClassForArray().getDeclaredFields();
@@ -141,7 +145,7 @@ namespace system.reflection
                 }
 
                 currentType = (system.RuntimeType) currentType.BaseType;
-                if (currentType == stopAtType)
+                if (loopOnce || object.ReferenceEquals(currentType, null))
                     break;
             }
         }
