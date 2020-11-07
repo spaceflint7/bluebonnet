@@ -9,6 +9,9 @@ namespace system
 
         internal static string GetResourceString(string key)
         {
+            if (key == "AggregateException_ToString")
+                return "{0}{1}---> (Inner Exception #{2}) {3}{4}{5}";
+
             return "(" + key + "?)";
         }
 
@@ -49,6 +52,26 @@ namespace system
 
 
         public static void Exit(int exitCode) => java.lang.System.exit(exitCode);
+
+
+
+        //
+        // GetEnvironmentVariable
+        //
+
+        public static string GetEnvironmentVariable(string variable)
+        {
+            ThrowHelper.ThrowIfNull(variable);
+            return java.lang.System.getenv(variable);
+        }
+
+        public static string GetEnvironmentVariable(string variable,
+                                                    System.EnvironmentVariableTarget target)
+        {
+            if (target != System.EnvironmentVariableTarget.Process)
+                throw new System.ArgumentException();
+            return GetEnvironmentVariable(variable);
+        }
 
     }
 }

@@ -25,11 +25,14 @@ namespace SpaceFlint.CilToJava
             if (newType == TypeCode.Single || newType == TypeCode.Double)
                 op = ConvertToFloat(code, oldType.PrimitiveType, newType, unsigned);
 
+            else if (overflow)
+                op = ConvertWithOverflow(code, oldType.PrimitiveType, newType);
+
             else if (newType == TypeCode.Int64 || newType == TypeCode.UInt64)
-                op = ConvertToLong(code, oldType.PrimitiveType, newType, overflow);
+                op = ConvertToLong(code, oldType.PrimitiveType, newType);
 
             else
-                op = ConvertToInteger(code, oldType.PrimitiveType, newType, overflow);
+                op = ConvertToInteger(code, oldType.PrimitiveType, newType);
 
             if (op != -1)
                 code.NewInstruction((byte) op, null, null);
@@ -150,7 +153,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static int ConvertToLong(JavaCode code, TypeCode oldType, TypeCode newType, bool overflow)
+        static int ConvertToLong(JavaCode code, TypeCode oldType, TypeCode newType)
         {
             if (oldType == TypeCode.Int64 || oldType == TypeCode.UInt64)
                 return 0x00; // nop
@@ -161,20 +164,14 @@ namespace SpaceFlint.CilToJava
             if (oldType == TypeCode.Single)
                 return 0x8C; // f2l
 
-            if (    newType == TypeCode.UInt64)
+            if (newType == TypeCode.UInt64)
             {
                 code.NewInstruction(0x85 /* i2l */, null, null);
                 code.StackMap.PushStack(JavaType.LongType);
-                #if true
-                long maskValue = (oldType == TypeCode.Byte) ? 0xFF
+                long maskValue = (oldType == TypeCode.Byte)   ? 0xFF
                                : (oldType == TypeCode.UInt16) ? 0xFFFF
-                               : (oldType == TypeCode.UInt32) ? 0xFFFFFFFF
-                               : 0;
-                code.NewInstruction(0x12 /* ldc */, null, (long) 0xFFFFFFFF);
-                #else
-                code.NewInstruction(0x02 /* iconst_m1 */, null, null);
-                code.NewInstruction(0x85 /* i2l */, null, null);
-                #endif
+                                                              : 0xFFFFFFFF;
+                code.NewInstruction(0x12 /* ldc */, null, (long) maskValue);
                 code.StackMap.PushStack(JavaType.LongType);
                 code.StackMap.PopStack(CilMain.Where);
                 code.StackMap.PopStack(CilMain.Where);
@@ -187,7 +184,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static int ConvertToInteger(JavaCode code, TypeCode oldType, TypeCode newType, bool overflow)
+        static int ConvertToInteger(JavaCode code, TypeCode oldType, TypeCode newType)
         {
             if (oldType == TypeCode.Double)
             {
@@ -230,6 +227,54 @@ namespace SpaceFlint.CilToJava
                 return 0x92; // i2c
 
             return 0x00; // nop
+        }
+
+
+
+        static int ConvertWithOverflow(JavaCode code, TypeCode oldType, TypeCode newType)
+        {
+            // checked conversion with overflow gets translated to a method call
+            // in system.Convert, e.g. 'char ToChar(int32)'.  these methods are
+            // implemented with built-in overflow checks.
+
+            if (oldType == newType)
+                return 0x00; // nop
+
+            string name = "To" + newType.ToString();
+            if (    oldType != TypeCode.Boolean && oldType != TypeCode.SByte
+                 && oldType != TypeCode.Char    && oldType != TypeCode.Int16
+                 && oldType != TypeCode.Int32   && oldType != TypeCode.Int64
+                 && oldType != TypeCode.Single  && oldType != TypeCode.Double)
+            {
+                // see also ShouldRenamePrimitive in CilMethod
+                name += CilMain.OPEN_PARENS + oldType.ToString() + CilMain.CLOSE_PARENS;
+            }
+            string callClassName = "system.Convert";
+
+            if (    code.Method.Name == name && code.Method.Class.Name == "system.Convert"
+                 && code.Method.Parameters.Count == 1
+                 && code.Method.Parameters[0].Type.PrimitiveType == oldType)
+            {
+                // if the checked conversion actually occurs in the system.Convert
+                // method that handles that conversion, then our fallback is to
+                // call a method on the target type.  this should only occur in the
+                // methods for converting a double to 64-bit integer.
+                if (newType == TypeCode.Int64 || newType == TypeCode.UInt64)
+                {
+                    callClassName = "system." + newType.ToString();
+                    name = "OverflowConvert";
+                }
+                else
+                    throw new Exception($"unexpected conversion with overflow from {oldType} to {newType}");
+            }
+
+            code.NewInstruction(0xB8 /* invokestatic */,
+                                new JavaType(0, 0, callClassName),
+                                new JavaMethodRef(name,
+                                        new JavaType(newType, 0, null),
+                                        new JavaType(oldType, 0, null)));
+
+            return -1;
         }
 
 
@@ -308,8 +353,11 @@ namespace SpaceFlint.CilToJava
             else
             {
                 var stackTop2 = code.StackMap.PopStack(CilMain.Where);
-                if (cilOp == Code.Add && CodeSpan.AddOffset(stackTop1, stackTop2, code))
+                if (    (cilOp == Code.Add || cilOp == Code.Add_Ovf_Un)
+                     && CodeSpan.AddOffset(stackTop1, stackTop2, code))
+                {
                     return;
+                }
 
                 char kind;
                 var type2 = type1;

@@ -25,8 +25,12 @@ namespace system
         {
             if (provider != null)
             {
-                if (provider.GetFormat(typeof(System.Globalization.NumberFormatInfo)) != null)
+                if (    (provider is System.Globalization.NumberFormatInfo)
+                     || null != provider.GetFormat(
+                                    typeof(System.Globalization.NumberFormatInfo)))
+                {
                     throw new PlatformNotSupportedException("provider with a NumberFormatInfo");
+                }
             }
 
             int len = format.length();
@@ -48,7 +52,8 @@ namespace system
             }
 
             char c = format.charAt(0);
-            bool isInt = ((number is java.lang.Integer) || (number is java.lang.Long));
+            bool isInt = (    number is java.lang.Byte    || number is java.lang.Short
+                           || number is java.lang.Integer || number is java.lang.Long);
             char pfx = (char) 0;
             string sfx = "";
 
@@ -59,6 +64,10 @@ namespace system
                         pfx = '0';
                     if (! isInt)
                         c = (char) 0;
+                    else if (number is java.lang.Byte)
+                        number = java.lang.Integer.valueOf(number.byteValue() & 0xFF);
+                    else if (number is java.lang.Short)
+                        number = java.lang.Integer.valueOf(number.shortValue() & 0xFFFF);
                     break;
 
                 case 'D':
@@ -70,7 +79,8 @@ namespace system
                     {
                         c = 'd';
                         pfx = ',';
-                        sfx = ".00";
+                        sfx = "." + new string('0', width);
+                        width = 0;
                     }
                     else
                         c = 'f';
@@ -118,6 +128,22 @@ namespace system
 
             return (string) (object) format;
         }
+
+        public static string DoubleToString(double v)
+        {
+            var formatter = (java.text.DecimalFormat) TlsDecimalFormatter.get();
+            if (formatter == null)
+            {
+                formatter = new java.text.DecimalFormat("0");
+                // 340 is DecimalFormat.DOUBLE_FRACTION_DIGITS
+                formatter.setMaximumFractionDigits(340);
+                TlsDecimalFormatter.set(formatter);
+            }
+            return formatter.format(v);
+        }
+
+        [java.attr.RetainType] static java.lang.ThreadLocal TlsDecimalFormatter =
+                                                            new java.lang.ThreadLocal();
 
     }
 

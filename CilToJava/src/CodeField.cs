@@ -403,6 +403,12 @@ namespace SpaceFlint.CilToJava
                     // is a value class that is assigned before the call to the
                     // base constructor.
 
+                    if (fldType.IsValueClass)
+                    {
+                        CilMethod.ValueMethod(CilMethod.ValueClone, code);
+                        code.NewInstruction(0xC0 /* checkcast */, fldType.AsWritableClass, null);
+                    }
+
                     code.NewInstruction(0xB5 /* putfield */, fldClass.AsWritableClass, fldRef);
                 }
 

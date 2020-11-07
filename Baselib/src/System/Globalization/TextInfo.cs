@@ -74,6 +74,18 @@ namespace system.globalization {
         public virtual object Clone() => MemberwiseClone();
 
         //
+        // private methods called by system.OrdinalComparer
+        // and system.OrdinalRandomizedComparer
+        //
+
+        public static int GetHashCodeOrdinalIgnoreCase(string s)
+            => ((java.lang.String) (object) s).toLowerCase(java.util.Locale.ROOT).GetHashCode();
+
+        public static int GetHashCodeOrdinalIgnoreCase(string s,
+                                            bool forceRandomizedHashing, long additionalEntropy)
+            => GetHashCodeOrdinalIgnoreCase(s);
+
+        //
         //
         //
 

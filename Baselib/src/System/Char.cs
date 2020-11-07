@@ -1,4 +1,6 @@
 
+using JavaUnsafe = system.runtime.interopservices.JavaUnsafe;
+
 namespace system
 {
 
@@ -7,21 +9,23 @@ namespace system
                         System.IConvertible, System.IEquatable<char>
     {
 
-        [java.attr.RetainType] protected char v;
+        [java.attr.RetainType] protected int v;
 
 
 
         public static Char Box(int v) => new Char() { v = (char) v };
         public static Char Box(char[] a, int i) => new Char.InArray(a, i);
 
-        public virtual int Get() => v;
-        public virtual int VolatileGet() => throw new System.NotSupportedException();
+        public virtual int Get() => (char) v;
+        public virtual int VolatileGet()
+            => (char) JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
 
         public virtual void Set(int v) => this.v = (char) v;
-        public virtual void VolatileSet(int v) => throw new System.NotSupportedException();
+        public virtual void VolatileSet(int v)
+            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, (char) v);
 
         public static void Set(int v, Char o) => o.Set(v);
-        public static void VolatileSet(int v, Char o) => throw new System.NotSupportedException();
+        public static void VolatileSet(int v, Char o) => o.VolatileSet(v);
 
 
 
@@ -78,6 +82,24 @@ namespace system
         ValueType ValueMethod.Clone() => Box(Get());
 
 
+
+        static long ValueOffset
+        {
+            get
+            {
+                if (_ValueOffset == -1)
+                {
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(Char),
+                                                java.lang.Integer.TYPE);
+                }
+                return _ValueOffset;
+            }
+        }
+        [java.attr.RetainType] static long _ValueOffset = -1;
+
+
+
         //
         //
         //
@@ -105,8 +127,45 @@ namespace system
         public static bool IsWhiteSpace(string s, int index) => IsWhiteSpace(StringCharAt(s, index));
 
         public static bool IsDigit(char c) => java.lang.Character.isDigit(c);
-
         public static bool IsDigit(string s, int index) => java.lang.Character.isDigit(StringCharAt(s, index));
+
+        public static bool IsHighSurrogate(char c) => java.lang.Character.isHighSurrogate(c);
+        public static bool IsHighSurrogate(string s, int index) => java.lang.Character.isHighSurrogate(StringCharAt(s, index));
+
+        public static bool IsLowSurrogate(char c) => java.lang.Character.isLowSurrogate(c);
+        public static bool IsLowSurrogate(string s, int index) => java.lang.Character.isLowSurrogate(StringCharAt(s, index));
+
+
+
+        public static string ConvertFromUtf32(int utf32)
+        {
+            try
+            {
+                return new string(java.lang.Character.toChars(utf32));
+            }
+            catch (java.lang.IllegalArgumentException)
+            {
+                throw new System.ArgumentOutOfRangeException();
+            }
+        }
+
+        public static int ConvertToUtf32(char highSurrogate, char lowSurrogate)
+        {
+            if (    java.lang.Character.isHighSurrogate(highSurrogate)
+                 && java.lang.Character.isLowSurrogate(lowSurrogate))
+            {
+                return java.lang.Character.toCodePoint(highSurrogate, lowSurrogate);
+            }
+            throw new System.ArgumentOutOfRangeException();
+        }
+
+        public static int ConvertToUtf32(string s, int index)
+        {
+            var c = StringCharAt(s, index);
+            return   java.lang.Character.isHighSurrogate(c)
+                   ? ConvertToUtf32(c, StringCharAt(s, index + 1))
+                   : c;
+        }
 
 
 

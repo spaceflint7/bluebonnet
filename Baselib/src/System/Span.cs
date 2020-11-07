@@ -218,6 +218,25 @@ namespace system
         }
 
         //
+        // helper methods for system.runtime.compilerservices.VoidHelper
+        //
+
+        public Span<T> CloneIntoCache(out object array)
+        {
+            var span = this;
+            array = span.array?.Get();
+            span.array = null;
+            return span;
+        }
+
+        public System.ValueType CloneFromCache(object array)
+        {
+            var span = this;
+            span.array = Reference.Box(array);
+            return (System.ValueType) span;
+        }
+
+        //
         // System.Span methods
         //
 
@@ -274,6 +293,7 @@ namespace system
 
         public bool IsEmpty => array == null || array.Get() == null;
         public static Span<T> Empty => new Span<T>();
+
     }
 
 }

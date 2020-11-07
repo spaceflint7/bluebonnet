@@ -42,6 +42,11 @@ namespace SpaceFlint.CilToJava
 
             ImportMethods(jclass, cilType, numCastableInterfaces);
 
+            if (myType.JavaName == "system.Convert")
+            {
+                DiscardBase64MethodsInConvertClass(jclass);
+            }
+
             ValueUtil.InitializeStaticFields(jclass, myType);
 
             if (myType.IsValueClass)
@@ -437,6 +442,13 @@ namespace SpaceFlint.CilToJava
                         }
                         else
                         {
+                            if ((! defMethod.IsAbstract) &&
+                                    (defMethod.IsInternalCall || defMethod.IsPInvokeImpl))
+                            {
+                                // skip native methods
+                                continue;
+                            }
+
                             // clear ACC_STATIC and access, set ACC_ABSTRACT and ACC_PUBLIC
                             newMethod.Flags = (newMethod.Flags | JavaAccessFlags.ACC_ABSTRACT
                                                                | JavaAccessFlags.ACC_PUBLIC)
@@ -584,6 +596,22 @@ namespace SpaceFlint.CilToJava
                     }
                     BuildJavaClass(nestedCilType, thisClass);
                 }
+            }
+        }
+
+
+
+        static void DiscardBase64MethodsInConvertClass(JavaClass jclass)
+        {
+            // discard Base64 methods from the translated system.Convert class.
+            // see also Translate_Call, which redirects call to these methods.
+            int i = 0;
+            while (i < jclass.Methods.Count)
+            {
+                if (jclass.Methods[i].Name.IndexOf("Base64") != -1)
+                    jclass.Methods.RemoveAt(i);
+                else
+                    i++;
             }
         }
 

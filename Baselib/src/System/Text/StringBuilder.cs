@@ -31,6 +31,12 @@ namespace system.text
             Append(str);
         }
 
+        public StringBuilder Clear()
+        {
+            sb.setLength(0);
+            return this;
+        }
+
         public StringBuilder Append(string value)
         {
             if (value != null)
@@ -50,6 +56,90 @@ namespace system.text
             for (int i = 0; i < repeatCount; i++)
                 buffer[i] = value;
             sb.append(buffer);
+            return this;
+        }
+
+        public StringBuilder Append(char[] value, int startIndex, int charCount)
+        {
+            if (startIndex < 0 || charCount < 0)
+                throw new ArgumentOutOfRangeException();
+            if (value == null)
+            {
+                if (startIndex != 0 || charCount != 0)
+                    throw new ArgumentOutOfRangeException();
+            }
+            else
+            {
+                if (charCount > value.Length - startIndex)
+                    throw new ArgumentOutOfRangeException();
+                sb.append(value, startIndex, charCount);
+            }
+            return this;
+        }
+
+        public StringBuilder Append(bool value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(byte value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(sbyte value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(short value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(ushort value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(int value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(uint value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(long value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(ulong value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(float value)
+        {
+            sb.append(value.ToString());
+            return this;
+        }
+
+        public StringBuilder Append(double value)
+        {
+            sb.append(value.ToString());
             return this;
         }
 

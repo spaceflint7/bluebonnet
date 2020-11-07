@@ -118,6 +118,13 @@ namespace system
             return c;
         }
 
+        public static long OverflowConvert(double d)
+        {
+            if (d < System.Int64.MinValue || d > System.Int64.MaxValue)
+                system.Math.OverflowException();
+            return (long) d;
+        }
+
 
 
         void ValueMethod.Clear() => Set(0);
@@ -257,6 +264,9 @@ namespace system
         public static explicit operator long(IntPtr a) => a.Get();
         public static long op_Explicit(int a)  => (long) a;
         public static int  op_Explicit(long a) => (int) a;
+
+        public static long op_Addition(long a, int b) => a + (long) b;
+        public static long op_Subtraction(long a, int b) => a - (long) b;
     }
 
 
@@ -372,6 +382,15 @@ namespace system
             return c;
         }
 
+        new public static ulong OverflowConvert(double d)
+        {
+            // the documentation says overflow occurs on MaxValue,
+            // but in practice it seems to be MaxValue minus 1024
+            if (d < 0 || d >= System.UInt64.MaxValue - 1024.0)
+                system.Math.OverflowException();
+            return (ulong) d;
+        }
+
 
 
         //
@@ -423,6 +442,9 @@ namespace system
         public static explicit operator long(UIntPtr a) => a.Get();
         public static long op_Explicit(int a)  => (long) a;
         public static int  op_Explicit(long a) => (int) a;
+
+        public static long op_Addition(long a, int b) => a + (long) b;
+        public static long op_Subtraction(long a, int b) => a - (long) b;
     }
 
 }

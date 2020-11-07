@@ -15,6 +15,7 @@ namespace Tests
             TestIndexOf();
             TestCompare();
             TestCast("Test");
+            TestEncoding();
         }
 
 
@@ -229,6 +230,18 @@ namespace Tests
         {
             Console.WriteLine("Convertible? " + ((str as IConvertible) != null)
                             + " Comparable? " + ((str as IComparable) != null));
+        }
+
+
+
+        void TestEncoding()
+        {
+            string aString = "0123456789";
+            foreach (var c in aString) Console.Write($"{c}={((int)c):X2} ");
+            var aBytes = System.Text.Encoding.ASCII.GetBytes(aString);
+            foreach (var b in aBytes) Console.Write($"  {((int)b):X2} ");
+            string bString = System.Text.Encoding.ASCII.GetString(aBytes);
+            Console.WriteLine(string.CompareOrdinal(aString, bString));
         }
 
     }

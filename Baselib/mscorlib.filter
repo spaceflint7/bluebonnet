@@ -13,12 +13,14 @@ System.ArgumentException
 System.ArgumentNullException
 System.ArgumentOutOfRangeException
 System.ArithmeticException
+System.ArraySegment`*
 System.ArrayTypeMismatchException
 System.ApplicationException
+System.BadImageFormatException
 System.Comparison`*
 System.Convert
 System.Converter`*
-System.DateTime
+System.DateTimeKind
 System.DBNull
 System.DllNotFoundException
 System.Empty
@@ -30,6 +32,7 @@ System.OutOfMemoryException
 System.OperationCanceledException
 System.Predicate`*
 System.PlatformNotSupportedException
+System.UnauthorizedAccessException
 System.UnhandledExceptionEventArgs
 System.UnhandledExceptionEventHandler
 System.Version
@@ -60,7 +63,10 @@ System.Nullable`*
 System.SystemException
 System.OverflowException
 
+System.Collections.BitArray
 System.Collections.Comparer
+System.Collections.DictionaryEntry
+System.Collections.Hashtable
 System.Collections.ICollection
 System.Collections.IDictionary
 System.Collections.IDictionaryEnumerator
@@ -70,9 +76,9 @@ System.Collections.IEqualityComparer
 System.Collections.IList
 System.Collections.IStructuralEquatable
 System.Collections.IStructuralComparable
+System.Collections.Queue
 System.Collections.StructuralComparisons
 System.Collections.StructuralEqualityComparer
-System.Collections.DictionaryEntry
 
 System.Collections.ObjectModel.Collection`1
 System.Collections.ObjectModel.ReadOnlyCollection`1
@@ -110,6 +116,7 @@ System.Runtime.InteropServices.CharSet
 System.Runtime.InteropServices.LayoutKind
 System.Runtime.InteropServices.StructLayoutAttribute
 System.Runtime.InteropServices.ExternalException
+System.Runtime.InteropServices.GCHandleType
 System.Runtime.InteropServices._Attribute
 System.Runtime.InteropServices._Type
 System.Runtime.InteropServices._MemberInfo
@@ -134,6 +141,13 @@ System.Runtime.Serialization.SerializationInfo
 System.Runtime.Serialization.StreamingContext
 System.Runtime.Serialization.SerializationException
 
+System.IO.BinaryReader
+System.IO.DirectoryNotFoundException
+System.IO.EndOfStreamException
+System.IO.FileAccess
+System.IO.FileMode
+System.IO.FileNotFoundException
+System.IO.MemoryStream
 System.IO.TextReader
 System.IO.TextWriter
 System.IO.StringReader
@@ -165,6 +179,7 @@ System.Reflection.AssemblyProductAttribute
 System.Reflection.Binder
 System.Reflection.BindingFlags
 System.Reflection.CallingConventions
+System.Reflection.IntrospectionExtensions
 System.Reflection.IReflect
 System.Reflection.MemberInfo
 System.Reflection.FieldInfo
@@ -190,9 +205,9 @@ System.TimeSpan
 System.IAsyncResult
 System.AsyncCallback
 
-System.Tuple`*
+System.Tuple*
 System.ITupleInternal
-System.ValueTuple`*
+System.ValueTuple*
 System.IValueTupleInternal
 
 System.Globalization.CompareOptions
@@ -242,6 +257,7 @@ System.Threading.SemaphoreFullException
 System.Threading.LazyInitializer
 System.Threading.LazyHelpers`1
 System.Threading.SparselyPopulatedArray`1
+System.Threading.WaitOrTimerCallback
 
 System.Threading.Tasks.Task
 System.Threading.Tasks.Task`*

@@ -86,6 +86,15 @@ namespace system.text.regularexpressions
             => Match(input).Success;
 
         //
+        // Replace
+        //
+
+        public static string Replace(string input, string pattern, string replacement)
+            => java.util.regex.Pattern.compile(pattern)
+                                      .matcher((java.lang.CharSequence) (object) input)
+                                      .replaceAll(replacement);
+
+        //
         // Escape
         //
 

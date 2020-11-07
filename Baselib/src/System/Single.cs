@@ -43,7 +43,7 @@ namespace system
             return v;
         }
 
-        public override string ToString() => java.lang.Float.toString(Get());
+        public override string ToString() => ParseNumbers.DoubleToString(Get());
 
 
 

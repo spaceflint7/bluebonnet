@@ -1,5 +1,6 @@
 
 using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Tests
@@ -32,6 +33,10 @@ namespace Tests
             GC.Collect();
             System.Threading.Thread.Sleep(100);
         }
+
+        //
+        // TestUnhandledException
+        //
 
         void TestUnhandledException()
         {

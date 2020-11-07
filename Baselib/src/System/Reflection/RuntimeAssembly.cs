@@ -49,7 +49,8 @@ namespace system.reflection
         public override System.Reflection.AssemblyName GetName(bool copiedName)
         {
             var name = new System.Reflection.AssemblyName("TheAssembly");
-            name.Version = new Version();
+            name.CultureName = "neutral";
+            name.Version = new Version(0, 0, 0, 0);
             return name;
         }
 
@@ -57,7 +58,7 @@ namespace system.reflection
 
         // nToString is called by AssemblyName.FullName
         public static string nToString(System.Reflection.AssemblyName name)
-            => $"{name.Name}, Version={name.Version}, Culture={name.CultureName}, PublicKeyToken=null";
+            => $"{name.Name}, Version={name.Version}, Culture={name.CultureName}, PublicKeyToken=0000000000000000";
 
         //
         // GetManifestResourceStream

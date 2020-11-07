@@ -14,10 +14,10 @@ namespace system
         // System.TimeSpan
         //
 
-        // System.TimeSpan.LegacyFormatMode is a native call, which is
-        // forwarded to the method below, see NativeMethodClasses in CodeCall.
         public static class TimeSpan
         {
+            // System.TimeSpan.LegacyFormatMode is a native call, which is
+            // forwarded to the method below, see NativeMethodClasses in CodeCall.
             public static bool LegacyFormatMode() => false;
         }
 

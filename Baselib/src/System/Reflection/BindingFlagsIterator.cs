@@ -70,6 +70,10 @@ namespace system.reflection
 
             switch (memberType)
             {
+                case MemberTypes.Constructor:
+                    RunConstructors(modifierMask, modifierValue, initialType, loopOnce, callback);
+                    return;
+
                 case MemberTypes.Method:
                     RunMethods(modifierMask, modifierValue, initialType, loopOnce, callback);
                     return;
@@ -80,6 +84,38 @@ namespace system.reflection
             }
 
             throw new System.ArgumentException();
+        }
+
+        //
+        // constructor iterator
+        //
+
+        static void RunConstructors(int modifierMask, int modifierValue,
+                                    RuntimeType currentType, bool loopOnce,
+                                    System.Predicate<java.lang.reflect.AccessibleObject> callback)
+        {
+            for (;;)
+            {
+                #pragma warning disable 0436
+                java.lang.reflect.Constructor[] javaConstructors =
+                    (java.lang.reflect.Constructor[]) (object)
+                            currentType.JavaClassForArray().getDeclaredConstructors();
+                #pragma warning restore 0436
+
+                foreach (var javaConstructor in javaConstructors)
+                {
+                    int jmodifiers = javaConstructor.getModifiers();
+                    if ((jmodifiers & modifierMask) == modifierValue)
+                    {
+                        if (! callback(javaConstructor))
+                            return;
+                    }
+                }
+
+                currentType = (system.RuntimeType) currentType.BaseType;
+                if (loopOnce || object.ReferenceEquals(currentType, null))
+                    break;
+            }
         }
 
         //

@@ -12,11 +12,12 @@ namespace Tests
         public override void TestMain()
         {
             TestAssembly();
-            //TestAttributes();
+            /*TestAttributes();*/
             TestReflection1();
             TestGenericMethod();
             TestFindType();
             TestPrimitives();
+            TestConstructor();
         }
 
 
@@ -189,7 +190,9 @@ namespace Tests
             Console.WriteLine("Find Types: "
                             + $"{Type.GetType("Tests.TestReflection")},"
                             //+ $"{Type.GetType("Tests.testreflection", false, true)},"
-                            //+ $"{Type.GetType("System.Action`1[System.Int32]")},"
+                            + $"{Type.GetType(" System.Action`1")},"
+                            + $"{Type.GetType("System.Action`1[[    System.Int32]]")},\n\t"
+                            + $"{Type.GetType("System.Action`2[[System.Tuple`1[[System.Int32]]],System.Char]")},"
                             );
         }
 
@@ -207,6 +210,30 @@ namespace Tests
                 Console.Write($"{sep}Type {ty,-16}{ty.IsPrimitive,5}, {Type.GetTypeCode(ty),-15}");
             }
             Console.WriteLine();
+        }
+
+
+
+        void TestConstructor()
+        {
+            SubTest(typeof(System.Version));
+            SubTest(typeof(System.Guid));
+            SubTest(Type.GetType("System.Collections.Generic.List`1[System.Int32]"));
+
+            void SubTest(Type t)
+            {
+                var c = t.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null, new Type[0], null);
+                if (c == null)
+                    Console.WriteLine($"No constructor for {t}");
+                else
+                {
+                    var o = c.Invoke(BindingFlags.CreateInstance, null, null, null);
+                    Console.WriteLine($"NewInstance of {t} via {c.ToString()}"
+                                    + $"\n\t--> {o?.ToString()}");
+                }
+            }
         }
 
     }

@@ -209,6 +209,8 @@ namespace system
             return (objUInt16 != null && objUInt16.Get() == Get());
         }
 
+        public override string ToString() => java.lang.Integer.toString(Get() & 0xFFFF);
+
         // System.IEquatable<ushort>
         public bool Equals(ushort v) => v == Get();
 

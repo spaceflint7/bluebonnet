@@ -2,10 +2,10 @@
 System.Collections.Generic.BitHelper
 System.Collections.Generic.HashSet`*
 
-System.Linq.Expressions.*
-System.Linq.Enumerable
-System.Linq.IOrderedEnumerable`*
 System.Linq.Buffer`*
-System.Linq.ILookup`*
+System.Linq.Enumerable
+System.Linq.Expressions.*
+System.Linq.Error
+System.Linq.I*
 System.Linq.Parallel*
 System.Linq.OrderedParallelQuery*

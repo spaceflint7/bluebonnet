@@ -37,8 +37,7 @@ namespace system.threading
                     Enter(obj);
                     return true;
                 }
-                throw new ArgumentOutOfRangeException(nameof(millis),
-                    Environment.GetResourceString("ArgumentOutOfRange_NeedNonNegOrNegative1"));
+                throw new ArgumentOutOfRangeException();
             }
             return GetLock(obj).tryLock(millis, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
@@ -89,8 +88,7 @@ namespace system.threading
                 if (millis == -1)
                     return Wait(obj);
 
-                throw new ArgumentOutOfRangeException(nameof(millis),
-                    Environment.GetResourceString("ArgumentOutOfRange_NeedNonNegOrNegative1"));
+                throw new ArgumentOutOfRangeException();
             }
             return GetCond(obj).@await(millis, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
@@ -105,8 +103,7 @@ namespace system.threading
             var millis = (long) timeout.TotalMilliseconds;
             if (millis < -1 || millis > (long) System.Int32.MaxValue)
             {
-                throw new ArgumentOutOfRangeException(nameof(timeout),
-                    Environment.GetResourceString("ArgumentOutOfRange_NeedNonNegOrNegative1"));
+                throw new ArgumentOutOfRangeException();
             }
             return (int) millis;
         }
@@ -116,11 +113,10 @@ namespace system.threading
         static java.util.concurrent.locks.ReentrantLock GetLock(object obj)
         {
             if (object.ReferenceEquals(obj, null))
-                throw new ArgumentNullException(nameof(obj));
+                throw new ArgumentNullException();
 
             if (obj is system.Array.ProxySyncRoot objArray)
                 obj = objArray.SyncRoot;
-
             var @lock = (java.util.concurrent.locks.ReentrantLock) LockCache.GetOrAdd(obj, null);
             if (object.ReferenceEquals(@lock, null))
             {
@@ -136,7 +132,7 @@ namespace system.threading
         static java.util.concurrent.locks.Condition GetCond(object obj)
         {
             if (object.ReferenceEquals(obj, null))
-                throw new ArgumentNullException(nameof(obj));
+                throw new ArgumentNullException();
 
             if (obj is system.Array.ProxySyncRoot objArray)
                 obj = objArray.SyncRoot;
@@ -153,8 +149,7 @@ namespace system.threading
 
 
 
-        private static void ThrowLockTakenException() =>
-            throw new ArgumentException(Environment.GetResourceString("Argument_MustBeFalse"), "lockTaken");
+        private static void ThrowLockTakenException() => throw new ArgumentException("LockTaken");
 
 
 

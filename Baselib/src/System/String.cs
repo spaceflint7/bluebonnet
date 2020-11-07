@@ -457,11 +457,11 @@ namespace system
         // operators
         //
 
-        public static bool op_Equality(string strA, string strB)
-            => ((object) strA).Equals(strB);
+        public static bool op_Equality(java.lang.String strA, java.lang.String strB)
+            => Equals(strA, strB);
 
-        public static bool op_Inequality(string strA, string strB)
-            => (! ((object) strA).Equals(strB));
+        public static bool op_Inequality(java.lang.String strA, java.lang.String strB)
+            => ! Equals(strA, strB);
 
         //
         // Equals
@@ -875,9 +875,6 @@ namespace system
 
             return (compareInfo, compareOption);
         }
-
-
-
 
 
 

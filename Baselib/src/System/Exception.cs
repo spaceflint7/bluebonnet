@@ -204,9 +204,31 @@ namespace system
             string t = this.StackTrace;
             if (t != null)
                 s += "\n" + t;
-            var e = InnerException;
-            if (! object.ReferenceEquals(e, null))
-                s += "\nInner exception: " + e;
+            if (! (((object) this) is System.AggregateException))
+            {
+                var e = InnerException;
+                if (! object.ReferenceEquals(e, null))
+                    s += "\nInner exception: " + e;
+            }
+            return s;
+        }
+
+
+
+        public static string ToString(java.lang.Throwable exc)
+        {
+            if (exc is system.Exception clrExc)
+                return clrExc.ToString();
+
+            string s = ((java.lang.Object) (object) exc).getClass() + ": " + exc.getMessage();
+            string t = get_StackTrace(exc);
+            if (t != null)
+                s += "\n" + t;
+
+            var innerException = exc.getCause();
+            if (! object.ReferenceEquals(innerException, null))
+                s += "\nInner exception: " + innerException;
+
             return s;
         }
 

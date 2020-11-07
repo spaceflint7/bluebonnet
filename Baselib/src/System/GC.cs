@@ -7,6 +7,14 @@ namespace system
 
         public static void Collect() => java.lang.System.gc();
 
+        public static long GetTotalMemory(bool forceFullCollection)
+        {
+            if (forceFullCollection)
+                java.lang.System.gc();
+            var rt = java.lang.Runtime.getRuntime();
+            return rt.totalMemory() - rt.freeMemory();
+        }
+
         public static void SuppressFinalize(object obj)
         {
             if (obj is SuppressibleFinalize objSuppressibleFinalize)

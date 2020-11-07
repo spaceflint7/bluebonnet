@@ -18,6 +18,7 @@ namespace system
         [java.attr.RetainType] private object arr;
         [java.attr.RetainType] private int len;
         [java.attr.RetainType] private int rank;
+        [java.attr.RetainType] private bool jagged;
 
         protected Array(object _arr)
         {
@@ -34,6 +35,10 @@ namespace system
             if (checkObject == null)
                 throw new System.ArgumentNullException();
         }
+
+
+
+        int ICollection.Count => len;
 
 
 
@@ -95,25 +100,58 @@ namespace system
 
 
         //
-        // ConstrainedCopy, Copy, CopyTo, ICollection.CopyTo, ICollection.Count
+        // ConstrainedCopy, Copy, CopyTo, ICollection.CopyTo
         //
+
+        private static void CheckCopyArgs(Array sourceArray, int sourceIndex,
+                                          Array destinationArray, int destinationIndex,
+                                          int length)
+        {
+            ThrowIfNull(sourceArray);
+            ThrowIfNull(destinationArray);
+            if (    sourceArray.rank != 1 && (! sourceArray.jagged)
+                 || sourceArray.rank != destinationArray.rank
+                 || sourceArray.jagged != destinationArray.jagged)
+                throw new System.RankException();
+
+            if (sourceIndex < 0 || destinationIndex < 0)
+                throw new System.ArgumentOutOfRangeException();
+
+            if (    sourceIndex      + length > sourceArray.len
+                 || destinationIndex + length > destinationArray.len)
+                throw new System.ArgumentException();
+        }
 
         public static void ConstrainedCopy(Array sourceArray, int sourceIndex,
                                            Array destinationArray, int destinationIndex,
                                            int length)
         {
-            object copy = null;
-            if (destinationArray != null)
-                copy = Clone(destinationArray.arr, destinationArray.len);
+            CheckCopyArgs(sourceArray, sourceIndex,
+                          destinationArray, destinationIndex,
+                          length);
+
+            var srcArr = sourceArray.arr;
+            var dstArr = destinationArray.arr;
+            var elemType = ((java.lang.Object) srcArr).getClass().getComponentType();
+            if (elemType != ((java.lang.Object) dstArr).getClass().getComponentType())
+                throw new System.ArrayTypeMismatchException();
+
+            object copy = Clone(destinationArray.arr, destinationArray.len);
             try
             {
-                sourceArray.CopyTo((System.Array) (object) destinationArray, 0);
+                CopyInternal(srcArr, sourceIndex,
+                             dstArr, destinationIndex,
+                             elemType, length);
                 copy = null;
             }
             finally
             {
                 if (copy != null)
-                    destinationArray.arr = copy;
+                {
+                    CopyInternal(copy, sourceIndex,
+                                 dstArr, destinationIndex,
+                                 elemType, length);
+                }
             }
         }
 
@@ -126,7 +164,10 @@ namespace system
         }
 
         public void CopyTo(System.Array array, int index)
-            => Copy(this, 0, (system.Array) (object) array, index, len);
+        {
+            // note that CopyTo is defined to only work for single dim arrays
+            Copy(this, 0, (system.Array) (object) array, index, len);
+        }
 
         public static void Copy(Array sourceArray, Array destinationArray, int length)
             => Copy(sourceArray, 0, destinationArray, 0, length);
@@ -142,46 +183,50 @@ namespace system
             int intDestinationIndex = (int) destinationIndex;
             int intLength = (int) length;
             if (intSourceIndex != sourceIndex || intDestinationIndex != destinationIndex)
-                throw new System.ArgumentOutOfRangeException("index");
+                throw new System.ArgumentOutOfRangeException();
             if (intLength != length)
-                throw new System.ArgumentOutOfRangeException("length");
-            Copy(sourceArray, intSourceIndex, destinationArray, intDestinationIndex, intLength);
+                throw new System.ArgumentOutOfRangeException();
+
+            Copy(sourceArray, intSourceIndex,
+                 destinationArray, intDestinationIndex,
+                 intLength);
         }
 
         public static void Copy(Array sourceArray, int sourceIndex,
                                 Array destinationArray, int destinationIndex,
                                 int length)
         {
-            ThrowIfNull(sourceArray);
-            ThrowIfNull(destinationArray);
-            if (sourceArray.rank != 1 || sourceArray.rank != destinationArray.rank)
-                throw new System.RankException("Rank_MultiDimNotSupported");
-            if (sourceIndex < 0 || destinationIndex < 0)
-                throw new System.ArgumentOutOfRangeException("index");
-            if (    sourceIndex + length > sourceArray.len
-                 || destinationIndex + length > destinationArray.len)
-                throw new System.ArgumentException("length");
+            CheckCopyArgs(sourceArray, sourceIndex,
+                          destinationArray, destinationIndex,
+                          length);
 
             var srcArr = sourceArray.arr;
             var dstArr = destinationArray.arr;
-
-            var srcType = ((java.lang.Object) srcArr).getClass().getComponentType();
-            var dstType = ((java.lang.Object) dstArr).getClass().getComponentType();
-            if (srcType != dstType)
+            var elemType = ((java.lang.Object) srcArr).getClass().getComponentType();
+            if (elemType != ((java.lang.Object) dstArr).getClass().getComponentType())
                 throw new System.ArrayTypeMismatchException();
 
-            if (system.RuntimeType.IsValueClass(srcType))
+            CopyInternal(srcArr, sourceIndex,
+                         dstArr, destinationIndex,
+                         elemType, length);
+        }
+
+        private static void CopyInternal(object srcArr, int srcIndex,
+                                         object dstArr, int dstIndex,
+                                         java.lang.Class elemType, int length)
+        {
+            if (system.RuntimeType.IsValueClass(elemType))
             {
                 ValueType srcObj, dstObj;
                 if (    object.ReferenceEquals(srcArr, dstArr)
-                     && destinationIndex > sourceIndex
-                     && destinationIndex < sourceIndex + length)
+                     && dstIndex > srcIndex
+                     && dstIndex < srcIndex + length)
                 {
                     // copy backwards to prevent smearing
                     while (length-- > 0)
                     {
-                        srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, sourceIndex + length);
-                        dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, destinationIndex + length);
+                        srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, srcIndex + length);
+                        dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, dstIndex + length);
                         ((ValueMethod) ((ValueType) srcObj)).CopyTo((ValueType) dstObj);
                     }
                 }
@@ -189,8 +234,8 @@ namespace system
                 {
                     for (int idx = 0; idx < length; idx++)
                     {
-                        srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, sourceIndex + idx);
-                        dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, destinationIndex + idx);
+                        srcObj = (ValueType) java.lang.reflect.Array.get(srcArr, srcIndex + idx);
+                        dstObj = (ValueType) java.lang.reflect.Array.get(dstArr, dstIndex + idx);
                         ((ValueMethod) ((ValueType) srcObj)).CopyTo((ValueType) dstObj);
                     }
                 }
@@ -198,13 +243,9 @@ namespace system
             else
             {
                 // for an array of primitives or references, use built-in arraycopy
-                java.lang.System.arraycopy(srcArr, sourceIndex, dstArr, destinationIndex, length);
+                java.lang.System.arraycopy(srcArr, srcIndex, dstArr, dstIndex, length);
             }
         }
-
-        int ICollection.Count => len;
-
-
 
         //
         // System.Array methods
@@ -216,7 +257,7 @@ namespace system
             return new ReadOnlyCollection<T>(array);
         }
 
-        public int Rank => rank;
+        public int Rank => jagged ? 1 : rank;
 
 
 
@@ -226,7 +267,7 @@ namespace system
 
         public int GetLength(int dimension)
         {
-            if (dimension < 0 || dimension >= rank)
+            if (dimension < 0 || dimension >= Rank)
                 throw new System.IndexOutOfRangeException();
             if (dimension == 0)
                 return len;
@@ -248,7 +289,7 @@ namespace system
 
         public object GetValue(int index1, int index2)
         {
-            if (rank != 2)
+            if (Rank != 2)
                 throw new System.ArgumentException();
             var sub = java.lang.reflect.Array.get(arr, index1);
             return Load(sub, index2);
@@ -256,7 +297,7 @@ namespace system
 
         public object GetValue(int index1, int index2, int index3)
         {
-            if (rank != 3)
+            if (Rank != 3)
                 throw new System.ArgumentException();
             var sub = java.lang.reflect.Array.get(arr, index1);
             sub = java.lang.reflect.Array.get(sub, index2);
@@ -267,7 +308,7 @@ namespace system
         {
             ThrowIfNull(indices);
             int n = indices.Length;
-            if (rank != n--)
+            if (Rank != n--)
                 throw new System.ArgumentException();
             object sub = arr;
             for (int i = 0; i < n; i++)
@@ -333,7 +374,7 @@ namespace system
 
         public void SetValue(object value, int index1, int index2)
         {
-            if (rank != 2)
+            if (Rank != 2)
                 throw new System.ArgumentException();
             var sub = java.lang.reflect.Array.get(arr, index1);
             Store(sub, index2, value);
@@ -341,7 +382,7 @@ namespace system
 
         public void SetValue(object value, int index1, int index2, int index3)
         {
-            if (rank != 3)
+            if (Rank != 3)
                 throw new System.ArgumentException();
             var sub = java.lang.reflect.Array.get(arr, index1);
             sub = java.lang.reflect.Array.get(sub, index2);
@@ -352,7 +393,7 @@ namespace system
         {
             ThrowIfNull(indices);
             int n = indices.Length;
-            if (rank != n--)
+            if (Rank != n--)
                 throw new System.ArgumentException();
             object sub = arr;
             for (int i = 0; i < n; i++)
@@ -413,7 +454,7 @@ namespace system
         public static int IndexOf(Array array, object value, int startIndex, int count)
         {
             ThrowIfNull(array);
-            if (array.rank != 1)
+            if (array.Rank != 1)
                 throw new System.RankException();
             if (startIndex < 0 || startIndex > array.len)
                 throw new System.ArgumentOutOfRangeException();
@@ -529,12 +570,12 @@ namespace system
         public static int LastIndexOf(Array array, object value, int startIndex, int count)
         {
             ThrowIfNull(array);
-            if (array.rank != 1)
-                throw new System.RankException("Rank_MultiDimNotSupported");
+            if (array.Rank != 1)
+                throw new System.RankException();
             if (startIndex < 0 || startIndex > array.len)
-                throw new System.ArgumentOutOfRangeException("startIndex");
+                throw new System.ArgumentOutOfRangeException();
             if (count < 0 || count > array.len - startIndex)
-                throw new System.ArgumentOutOfRangeException("count");
+                throw new System.ArgumentOutOfRangeException();
 
             int endIndex = startIndex + count;
 
@@ -1014,7 +1055,9 @@ namespace system
             var runtimeType = (system.RuntimeType) type;
             var cls = runtimeType.JavaClassForArray();
             var array = java.lang.reflect.Array.newInstance(cls, count);
-            if (system.RuntimeType.IsValueClass(cls))
+            if (cls.getComponentType() != null)
+                MarkJagged(array);
+            else if (system.RuntimeType.IsValueClass(cls))
             {
                 Initialize(array, runtimeType,
                            (system.ValueType) runtimeType.CallConstructor(true),
@@ -1097,7 +1140,7 @@ namespace system
                         // this will throw invalid cast if the types do not match.
                         // but note that it will succeed with generic instance types
                         // even when the type arguments do not match.
-                        ((ValueMethod) ((ValueType) valueArray[index])).CopyTo((ValueType) value);
+                        ((ValueMethod) (ValueType) value).CopyTo(valueArray[index]);
                         break;
 
                     case object[] objectArray:
@@ -1225,7 +1268,7 @@ namespace system
         // IEnumerator
         //
 
-        public IEnumerator GetEnumerator() => new Enumerator(arr, len, rank);
+        public IEnumerator GetEnumerator() => new Enumerator(arr, len, Rank);
 
         [System.Serializable]
         public class Enumerator : IEnumerator, System.ICloneable
@@ -1411,6 +1454,11 @@ namespace system
             return (Array) (Array.ProxySyncRoot) proxy;
         }
 
+        public static void MarkJagged(object obj)
+        {
+            ((Array) GetProxy(obj, cachedArrayType, false)).jagged = true;
+        }
+
         [java.attr.RetainType] private static readonly System.Type cachedArrayType =
                 system.RuntimeType.GetType((java.lang.Class) typeof(System.Array));
         [java.attr.RetainType] private static readonly System.Type cachedICloneable =
@@ -1460,7 +1508,7 @@ namespace system
         {
             public Proxy(object _arr) : base(_arr) {}
 
-            IEnumerator<T> IEnumerable<T>.GetEnumerator() => new GenericEnumerator(arr, len, rank);
+            IEnumerator<T> IEnumerable<T>.GetEnumerator() => new GenericEnumerator(arr, len, Rank);
 
             [System.Serializable]
             public class GenericEnumerator : system.Array.Enumerator, IEnumerator<T>
@@ -1475,8 +1523,8 @@ namespace system
 
             void ICollection<T>.CopyTo(T[] array, int index)
             {
-                if (rank != 1)
-                    throw new System.ArgumentException("Rank_MultiDimNotSupported");
+                if (Rank != 1)
+                    throw new System.ArgumentException();
                 base.CopyTo(array, index);
             }
 

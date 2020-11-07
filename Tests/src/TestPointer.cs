@@ -17,6 +17,7 @@ namespace Tests
             Test6();
             Test7();
             Test8();
+            Test9();
         }
 
         unsafe void Test1()
@@ -164,5 +165,27 @@ namespace Tests
             }
         }
 
+        unsafe void Test9()
+        {
+            var elementArray1 = new Element[2];
+            elementArray1[0].v = 1234;
+            var elementArray2 = new Element[2];
+            unsafe
+            {
+                fixed (Element* p = &elementArray2[0])
+                {
+                    Copy(p, elementArray1);
+                    Console.Write(p[0].v + ",");
+                }
+            }
+            Console.Write(elementArray2[0].v + ",");
+            Console.WriteLine(elementArray2[1].v);
+
+            static unsafe void Copy(Element *o, Element[] i)
+            {
+                o->v = i[0].v;
+                o++;
+            }
+        }
     }
 }

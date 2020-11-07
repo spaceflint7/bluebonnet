@@ -126,6 +126,9 @@ namespace system.threading
             BarrierHelper = null;
         }
 
+        public static void BeginCriticalRegion() { }
+        public static void EndCriticalRegion()   { }
+
 
 
         [java.attr.RetainType] static volatile object BarrierHelper;

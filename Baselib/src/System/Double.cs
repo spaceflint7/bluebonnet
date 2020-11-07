@@ -43,7 +43,7 @@ namespace system
             return ((int) v) ^ (int) (v >> 32);
         }
 
-        public override string ToString() => java.lang.Double.toString(Get());
+        public override string ToString() => ParseNumbers.DoubleToString(Get());
 
 
 

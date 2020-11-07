@@ -1576,26 +1576,99 @@ namespace system
                                           bool ignoreCase, bool reflectionOnly,
                                           ref system.threading.StackCrawlMark stackMark)
         {
-            ThrowHelper.ThrowIfNull(typeName);
-            if (typeName.IndexOfAny("\\`[],+".ToCharArray()) != -1)
+            var type = GetType2(typeName, ignoreCase);
+            if (type == null && throwOnError)
+                throw new TypeLoadException(typeName);
+            return type;
+
+
+
+            static RuntimeType GetType2(string typeName, bool ignoreCase)
+            {
+                ThrowHelper.ThrowIfNull(typeName);
+                if (typeName.IndexOfAny("\\+".ToCharArray()) != -1)
+                    return null;
+
+                Type[] typeArgs = null;
+                int idx = typeName.IndexOf('`');
+                if (idx > 0 && idx + 1 < typeName.Length)
+                {
+                    typeName = typeName.Substring(0, idx++) + "$$" + typeName.Substring(idx);
+                    // if generic type is followed by type arguments, parse them
+                    if ((idx += 2) < typeName.Length && typeName[idx] == '[')
+                    {
+                        typeArgs = GetType3(typeName.Substring(idx), ignoreCase);
+                        if (typeArgs == null)
+                            return null;
+                        typeName = typeName.Substring(0, idx);
+                    }
+                }
+
+                // discard beyond comma, e.g. "Type.Name, AssemblyName, Version=..."
+                idx = typeName.IndexOf(',');
+                if (idx != -1)
+                    typeName = typeName.Substring(0, idx);
+
+                // find namespace separate and make namespace lowercase
+                idx = typeName.LastIndexOf('.');
+                if (idx > 0 && ++idx < typeName.Length)
+                {
+                    var nsName = typeName.Substring(0, idx).ToLowerInvariant();
+                    typeName = nsName + typeName.Substring(idx);
+                }
+
+                try
+                {
+                    var cls = java.lang.Class.forName(typeName.Trim());
+                    return (RuntimeType) GetType(cls, typeArgs);
+                }
+                catch (java.lang.ClassNotFoundException)
+                {
+                }
+
                 return null;
-
-            int idx = typeName.LastIndexOf('.');
-            if (idx != -1)
-            {
-                var nsName = typeName.Substring(0, idx + 1).ToLowerInvariant();
-                typeName = nsName + typeName.Substring(idx + 1);
             }
 
-            try
+
+
+            static Type[] GetType3(string s, bool ignoreCase)
             {
-                var cls = java.lang.Class.forName(typeName);
-                return (RuntimeType) GetType(cls);
+                if (s.Length <= 2 || s[0] != '[' || s[s.Length - 1] != ']')
+                    return null;
+
+                var typeList = new System.Collections.Generic.List<Type>();
+                int start = 1;
+                int brackets = 0;
+
+                for (int i = start; i < s.Length; i++)
+                {
+                    if (s[i] == '[')
+                    {
+                        if (brackets++ == 0)
+                            start = i + 1;
+                    }
+                    else if (brackets > 0)
+                    {
+                        if (s[i] == ']' && --brackets < 0)
+                            return null;
+                    }
+
+                    else if (s[i] == ',' || s[i] == ']')
+                    {
+                        int extra = s[i - 1] == ']' ? 1 : 0;
+                        var name = s.Substring(start, i - start - extra);
+                        var typeArg = GetType2(name, ignoreCase);
+                        if (typeArg == null)
+                            return null;
+                        typeList.Add(typeArg);
+
+                        start = i + 1;
+                        if (s[i] == ']' && start == s.Length)
+                            return typeList.ToArray();
+                    }
+                }
+                return null;
             }
-            catch (java.lang.ClassNotFoundException)
-            {
-            }
-            return null;
         }
 
 
@@ -1616,16 +1689,19 @@ namespace system
                         name, bindingAttr, binder, callConvention, types, modifiers, this);
         }
 
-        public override object InvokeMember(
-            string name, BindingFlags invokeAttr, Binder binder, object target, object[] args,
-            ParameterModifier[] modifiers, CultureInfo culture, string[] namedParameters)
-        {
-            throw new PlatformNotSupportedException();
-        }
-
         protected override ConstructorInfo GetConstructorImpl(
             BindingFlags bindingAttr, Binder binder, CallingConventions callConvention,
             Type[] types, ParameterModifier[] modifiers)
+        {
+            if (JavaClass == null)      // if generic parameter
+                return null;
+            return system.reflection.RuntimeConstructorInfo.GetConstructor(
+                        bindingAttr, binder, callConvention, types, modifiers, this);
+        }
+
+        public override object InvokeMember(
+            string name, BindingFlags invokeAttr, Binder binder, object target, object[] args,
+            ParameterModifier[] modifiers, CultureInfo culture, string[] namedParameters)
         {
             throw new PlatformNotSupportedException();
         }

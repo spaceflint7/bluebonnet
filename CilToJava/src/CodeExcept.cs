@@ -852,10 +852,19 @@ namespace SpaceFlint.CilToJava
                 return;
             }
 
-            //
+            if (thisClause.catchEnd ==
+                            FindNearestFinallyClause(instOffset)?.catchStart)
+            {
+                // if this 'finally' is itself nested within a 'finally'
+                // handler that immediately follows it, just fall through
+                stackMap.PushStack(ThrowableType);
+                code.NewInstruction(0x00 /* nop */, null, null);
+                stackMap.SaveFrame((ushort) instOffset, true, CilMain.Where);
+                return;
+            }
+
             // typical variant of a non-nested 'endfinally' instruction.
             // proceed to the specified leave offset, or rethrow the exception.
-            //
 
             if (! thisClause.hasNestedTry)
             {

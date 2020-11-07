@@ -427,8 +427,13 @@ namespace SpaceFlint.CilToJava
                         castType = resolvedType;
                         code.NewInstruction(0xC0 /* checkcast */, castType.AsWritableClass, null);
                     }
-                    else if (castType.IsByReference)
+                    else if (    castType.IsByReference
+                              || (    (! resolvedType.IsReference)
+                                   && resolvedType.PrimitiveType != 0))
                     {
+                        // cast the generic type to an actual boxed type, when it is
+                        // returned byref (called from PushMethodReturnType), or when
+                        // the actual type is a primitive (from LoadFieldAddress)
                         var boxedType = new BoxedType(resolvedType, false);
                         code.NewInstruction(0xC0 /* checkcast */, boxedType, null);
                         castType = boxedType;

@@ -22,7 +22,7 @@ namespace system
 
         public virtual void Set(int v) => this.v = (v != 0) ? 1 : 0;
         public virtual void VolatileSet(int v)
-            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, v);
+            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, (v != 0) ? 1 : 0);
 
         public static void Set(int v, Boolean o) => o.Set(v);
         public static void VolatileSet(int v, Boolean o) => o.VolatileSet(v);

@@ -11,16 +11,16 @@ namespace system.reflection
     public sealed class RuntimeMethodInfo : MethodInfo, ISerializable
     {
         #pragma warning disable 0436
-        [java.attr.RetainType] public java.lang.reflect.Method JavaMethod;
+        [java.attr.RetainType] private java.lang.reflect.Method JavaMethod;
         #pragma warning restore 0436
-        [java.attr.RetainType] public string originalName;
-        [java.attr.RetainType] public string strippedName;
-        [java.attr.RetainType] public system.RuntimeType reflectedType;
-        [java.attr.RetainType] public object[] typeArguments;
+        [java.attr.RetainType] private string originalName;
+        [java.attr.RetainType] private string strippedName;
+        [java.attr.RetainType] private system.RuntimeType reflectedType;
+        [java.attr.RetainType] private object[] typeArguments;
 
-        [java.attr.RetainType] public MethodAttributes cachedAttrs = 0;
+        [java.attr.RetainType] private MethodAttributes cachedAttrs = 0;
 
-        [java.attr.RetainType] public int genericFlags;
+        [java.attr.RetainType] private int genericFlags;
         const int flgGenericMethod             = 0x10;
         const int flgGenericMethodDefinition   = 0x20;
         const int flgContainsGenericParameters = 0x40;
@@ -35,24 +35,8 @@ namespace system.reflection
                                            Type[] types, ParameterModifier[] modifiers,
                                            RuntimeType initialType)
         {
-            //
-            // validate parameters
-            //
-
-            if (name == null)
-                throw new ArgumentNullException("name");
-            if (binder != null)
-                throw new PlatformNotSupportedException("non-null binder");
-            if (callConvention != CallingConventions.Any)
-                throw new PlatformNotSupportedException("calling convention must be Any");
-            if (types != null)
-                throw new PlatformNotSupportedException("non-null types");
-            if (modifiers != null)
-                throw new PlatformNotSupportedException("non-null modifiers");
-
-            //
-            // calculate modifier AND mask and result for matches
-            //
+            ThrowHelper.ThrowIfNull(name);
+            RuntimeMethodInfo.ValidateGetMethod(binder, callConvention, types, modifiers);
 
             RuntimeMethodInfo foundMethod = null;
 
@@ -64,18 +48,7 @@ namespace system.reflection
                 #pragma warning restore 0436
 
                 string originalName = javaMethod.getName();
-                // note the actual suffix character below is configured
-                // in CilMain.cs, with special considerations for Android.
-                // we list all possible characters here, just in case.
-                int idx = originalName.IndexOf('\u00AB'); // U+00AB Left-Pointing Double Angle Quotation Mark
-                if (idx == -1)
-                    idx = originalName.IndexOf('\u00A1'); // U+00A1 Inverted Exclamation Mark
-                if (idx == -1)
-                    idx = originalName.IndexOf('(');
-                if (idx == -1)
-                    idx = originalName.IndexOf('!');
-                var compareName =
-                    (idx == -1) ? originalName : originalName.Substring(0, idx);
+                var compareName = RuntimeMethodInfo.AdjustedMethodName(originalName);
 
                 if (name == compareName)
                 {
@@ -90,6 +63,43 @@ namespace system.reflection
             });
 
             return foundMethod;
+        }
+
+        //
+        // ValidateGetMethod
+        //
+
+        public static void ValidateGetMethod(Binder binder, CallingConventions callConvention,
+                                             Type[] types, ParameterModifier[] modifiers)
+        {
+            if (binder != null)
+                throw new PlatformNotSupportedException("non-null binder");
+            if (callConvention != CallingConventions.Any)
+                throw new PlatformNotSupportedException("calling convention must be Any");
+            if (types != null && types.Length != 0)
+                throw new PlatformNotSupportedException("non-null types");
+            if (modifiers != null)
+                throw new PlatformNotSupportedException("non-null modifiers");
+        }
+
+        //
+        // AdjustedMethodName
+        //
+
+        public static string AdjustedMethodName(string name)
+        {
+            // note the actual suffix character below is configured
+            // in CilMain.cs, with special considerations for Android.
+            // we list all possible characters here, just in case.
+            int idx = name.IndexOf('\u00AB'); // U+00AB Left-Pointing Double Angle Quotation Mark
+            if (idx == -1)
+                idx = name.IndexOf('\u00A1'); // U+00A1 Inverted Exclamation Mark
+            if (idx == -1)
+                idx = name.IndexOf('(');
+            if (idx == -1)
+                idx = name.IndexOf('!');
+
+            return (idx == -1) ? name : name.Substring(0, idx);
         }
 
         //
@@ -415,7 +425,7 @@ namespace system.reflection
 }
 
 //
-// declaration of java.lang.reflect.Method and java.lang.reflect.Constructor.
+// declaration of java.lang.reflect.Method.
 // this is needed because java 1.8 inserts a new java.lang.reflect.Executable
 // class as the base class for Method and Constructor.
 // this causes an error on Android, because the Executable class is missing.
@@ -423,14 +433,6 @@ namespace system.reflection
 
 namespace java.lang.reflect
 {
-    [java.attr.Discard] // discard in output
-    public abstract class Constructor : AccessibleObject
-    {
-        public abstract object newInstance(object[] initargs);
-        public abstract Class[] getParameterTypes();
-        public abstract int getModifiers();
-    }
-
     [java.attr.Discard] // discard in output
     public abstract class Method : AccessibleObject
     {

@@ -24,6 +24,7 @@ namespace Tests
             TestNestedTry4();
             TestNestedTry5();
             TestNestedTry6();
+            TestNestedTry7();
             Console.WriteLine("----------");
 
             TestFaultHandler();
@@ -369,5 +370,28 @@ namespace Tests
             }
         }
 
+
+
+        void TestNestedTry7()
+        {
+            try
+            {
+                Console.WriteLine("Try1.Stmt1");
+                try
+                {
+                    Console.WriteLine("Try2.Stmt2");
+                    return;
+                }
+                finally
+                {
+                    Console.WriteLine("Try2.Finally");
+                }
+                Console.WriteLine("Try1.Stmt2");
+            }
+            finally
+            {
+                Console.WriteLine("Try1.Finally");
+            }
+        }
     }
 }

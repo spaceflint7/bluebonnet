@@ -257,7 +257,7 @@ namespace SpaceFlint.CilToJava
 
             if (fromType.IsNested)
             {
-                var parent = CilType.From(fromType.DeclaringType);
+                var parent = CilType.From(AsDefinition(fromType.DeclaringType));
                 name = parent.ClassName + "$" + name;
             }
             else if (! string.IsNullOrEmpty(fromType.Namespace))
@@ -729,8 +729,11 @@ namespace SpaceFlint.CilToJava
             return new JavaType(0, 0, name);
         }
 
+        protected bool UnboxedTypeIsEnum
+            => (UnboxedType.IsEnum && UnboxedType.ArrayRank == 0);
+
         private JavaType ThisOrEnum
-            => (UnboxedType.IsEnum ? SystemEnumType : GetBaseClass(this));
+            => (UnboxedTypeIsEnum ? SystemEnumType : GetBaseClass(this));
 
         protected JavaType UnboxedTypeInMethod =>
               UnboxedType.IsIntLike ? JavaType.IntegerType
@@ -739,7 +742,7 @@ namespace SpaceFlint.CilToJava
 
         public virtual void BoxValue(JavaCode code)
         {
-            if (UnboxedType.IsEnum)
+            if (UnboxedTypeIsEnum)
             {
                 code.NewInstruction(0x12 /* ldc */, this, null);
                 code.StackMap.PushStack(JavaType.ClassType);
@@ -807,7 +810,7 @@ namespace SpaceFlint.CilToJava
             code.NewInstruction(0xB6 /* invokevirtual */, this,
                                 new JavaMethodRef("get", JavaType.ObjectType));
             code.NewInstruction(0xC0 /* checkcast */, innerType, null);
-            return (UnboxedType.IsEnum ? SystemEnumType : GetBaseClass(innerType));
+            return (UnboxedTypeIsEnum ? SystemEnumType : GetBaseClass(innerType));
         }
 
         public override void GetValue(JavaCode code, bool isVolatile = false)

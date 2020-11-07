@@ -9,7 +9,7 @@ namespace system
                          System.IConvertible, System.IEquatable<sbyte>, System.IFormattable
     {
 
-        [java.attr.RetainType] protected sbyte v;
+        [java.attr.RetainType] protected int v;
 
 
 
@@ -17,14 +17,16 @@ namespace system
         public static SByte Box(sbyte[] a, int i) => new SByte.InArray(a, i);
         protected virtual ValueType Clone(int v) => SByte.Box(v);
 
-        public virtual int Get() => v;
-        public virtual int VolatileGet() => throw new System.NotSupportedException();
+        public virtual int Get() => (sbyte) v;
+        public virtual int VolatileGet()
+            => (sbyte) JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
 
         public virtual void Set(int v) => this.v = (sbyte) v;
-        public virtual void VolatileSet(int v) => throw new System.NotSupportedException();
+        public virtual void VolatileSet(int v)
+            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, (sbyte) v);
 
         public static void Set(int v, SByte o) => o.Set(v);
-        public static void VolatileSet(int v, SByte o) => throw new System.NotSupportedException();
+        public static void VolatileSet(int v, SByte o) => o.VolatileSet(v);
 
 
 
@@ -36,7 +38,7 @@ namespace system
 
         public override int GetHashCode() => Get();
 
-        public override string ToString() => java.lang.Integer.toString(Get());
+        public override string ToString() => java.lang.Integer.toString(Get() & 0xFF);
 
 
 
@@ -49,7 +51,7 @@ namespace system
             if (string.IsNullOrEmpty(format))
                 return ToString();
             return ParseNumbers.FormatNumber((java.lang.String) (object) format, provider,
-                                             java.lang.Integer.valueOf(Get()));
+                                             java.lang.Byte.valueOf((sbyte) Get()));
         }
 
         public string ToString(string format) => ToString(format, null);
@@ -80,6 +82,23 @@ namespace system
         void ValueMethod.Clear() => Set(0);
         void ValueMethod.CopyTo(ValueType into) => ((SByte) into).Set(Get());
         ValueType ValueMethod.Clone() => Clone(Get());
+
+
+
+        protected static long ValueOffset
+        {
+            get
+            {
+                if (_ValueOffset == -1)
+                {
+                    _ValueOffset = JavaUnsafe.FieldOffset(
+                                                (java.lang.Class) typeof(SByte),
+                                                java.lang.Integer.TYPE);
+                }
+                return _ValueOffset;
+            }
+        }
+        [java.attr.RetainType] static long _ValueOffset = -1;
 
 
 
@@ -181,9 +200,17 @@ namespace system
     public class Byte : SByte, System.IComparable<byte>, System.IEquatable<byte>
     {
 
-        new public static Byte Box(int v) => new Byte() { v = (sbyte) v };
+        new public static Byte Box(int v) => new Byte() { v = (byte) v };
         public static Byte Box(byte[] a, int i) => new Byte.InArray(a, i);
         protected override ValueType Clone(int v) => Byte.Box(v);
+
+        public override int Get() => (byte) v;
+        public override int VolatileGet()
+            => (byte) JavaUnsafe.Obj.getIntVolatile(this, ValueOffset);
+
+        public override void Set(int v) => this.v = (byte) v;
+        public override void VolatileSet(int v)
+            => JavaUnsafe.Obj.putIntVolatile(this, ValueOffset, (byte) v);
 
         public override bool Equals(object obj)
         {

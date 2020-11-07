@@ -54,7 +54,7 @@ namespace system.text
 
             var byteBuffer = java.nio.ByteBuffer.wrap((sbyte[]) (object) bytes, index, count);
             var charBuffer = JavaCharset.decode(byteBuffer);
-            return charBuffer.position();
+            return charBuffer.remaining();
         }
 
         public virtual int GetMaxCharCount(int byteCount)
@@ -128,7 +128,7 @@ namespace system.text
 
             var charBuffer = java.nio.CharBuffer.wrap(chars, index, count);
             var byteBuffer = JavaCharset.encode(charBuffer);
-            return byteBuffer.position();
+            return byteBuffer.remaining();
         }
 
 
@@ -163,16 +163,12 @@ namespace system.text
                 => encoding.GetByteCount(chars, index, count);
         }
 
-
-
         //
         //
         //
 
         [java.attr.RetainType] private static byte[] emptyPreamble = new byte[0];
         public virtual byte[] GetPreamble() => emptyPreamble;
-
-
 
         //
         // PerThreadJavaDecoder / PerThreadJavaEncoder
@@ -212,8 +208,6 @@ namespace system.text
         protected java.nio.charset.CharsetEncoder PerThreadJavaEncoder
             => ((java.nio.charset.CharsetEncoder) PerThreadJavaCoder(1)).reset();
 
-
-
         //
         // well known encodings
         //
@@ -223,10 +217,53 @@ namespace system.text
             => System.Threading.LazyInitializer.EnsureInitialized<Encoding>(
                     ref defaultEncoding, () => new DefaultEncoding());
 
+        private static Encoding asciiEncoding;
+        public static Encoding ASCII
+            => System.Threading.LazyInitializer.EnsureInitialized<Encoding>(
+                    ref asciiEncoding, () => new ASCIIEncoding());
+
         private static Encoding utf8Encoding;
         public static Encoding UTF8
             => System.Threading.LazyInitializer.EnsureInitialized<Encoding>(
                     ref utf8Encoding, () => new UTF8Encoding(true));
+
+        //
+        // utility methods
+        //
+
+        public virtual char[] GetChars(byte[] bytes, int index, int count)
+        {
+            char[] chars = new char[GetCharCount(bytes, index, count)];
+            GetChars(bytes, index, count, chars, 0);
+            return chars;
+        }
+
+        public virtual int GetByteCount(string s)
+        {
+            ThrowHelper.ThrowIfNull(s);
+            var chars = s.ToCharArray();
+            return GetByteCount(chars, 0, chars.Length);
+        }
+
+        public virtual byte[] GetBytes(string s)
+        {
+            ThrowHelper.ThrowIfNull(s);
+            var chars = s.ToCharArray();
+            int length = chars.Length;
+            byte[] bytes = new byte[length];
+            GetBytes(chars, 0, length, bytes, 0);
+            return bytes;
+        }
+
+        public virtual string GetString(byte[] bytes)
+        {
+            ThrowHelper.ThrowIfNull(bytes);
+            return new string(GetChars(bytes, 0, bytes.Length));
+        }
+
+        public virtual string GetString(byte[] bytes, int index, int count)
+            => new string(GetChars(bytes, index, count));
+
     }
 
 
@@ -237,6 +274,17 @@ namespace system.text
         public DefaultEncoding()
         {
             JavaCharset = java.nio.charset.Charset.defaultCharset();
+        }
+    }
+
+
+
+    [System.Serializable]
+    class ASCIIEncoding : Encoding
+    {
+        public ASCIIEncoding()
+        {
+            JavaCharset = java.nio.charset.Charset.forName("US-ASCII");
         }
     }
 
@@ -257,6 +305,44 @@ namespace system.text
 
         public override byte[] GetPreamble()
             => emitUTF8Identifier ? new byte[3] { 0xEF, 0xBB, 0xBF } : base.GetPreamble();
+    }
+
+
+
+    [System.Serializable]
+    public class UnicodeEncoding : Encoding
+    {
+        public bool bigEndian;
+        public bool byteOrderMark;
+        public const int CharSize = 2;
+
+        public UnicodeEncoding() : this(false, true, false) { }
+        public UnicodeEncoding(bool bigEndian, bool byteOrderMark)
+            : this(bigEndian, byteOrderMark, false) { }
+
+        public UnicodeEncoding(bool bigEndian, bool byteOrderMark, bool throwOnInvalidBytes)
+        {
+            this.bigEndian = bigEndian;
+            this.byteOrderMark = byteOrderMark;
+            JavaCharset = java.nio.charset.Charset.forName(
+                                    bigEndian ? "UTF-16BE" : "UTF-16LE");
+        }
+
+        public override byte[] GetPreamble()
+            =>   (! byteOrderMark) ? new byte[0]
+               : bigEndian ? new byte[2] { 0xFE, 0xFF } : new byte[2] { 0xFF, 0xfE };
+    }
+
+
+
+    [System.Serializable]
+    public abstract class DecoderFallback
+    {
+    }
+
+    [System.Serializable]
+    public abstract class EncoderFallback
+    {
     }
 
 }

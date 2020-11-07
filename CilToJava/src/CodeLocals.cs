@@ -225,6 +225,9 @@ namespace SpaceFlint.CilToJava
             // it was not passed by reference, then we have to make a copy
             // of the incoming value.
             //
+            // a pointer argument is actually passed as a span (value type)
+            // so if it is modified, we have to make a copy, as above.
+            //
             // (if it was a generic parameter which represents a value type,
             // then a copy was already made when the value was loaded.)
 
@@ -232,39 +235,46 @@ namespace SpaceFlint.CilToJava
 
             foreach (var inst in cilMethod.Body.Instructions)
             {
-                int index;
-                bool arg;
-                if (         (    inst.OpCode == OpCodes.Ldarga
-                               || inst.OpCode == OpCodes.Ldarga_S)
-                          && inst.Operand is ParameterDefinition param1)
+                int index = -1;
+                bool arg = false;
+                bool isPointerSpan = false;
+
+                var instOpc = inst.OpCode.Code;
+                if (instOpc == Code.Ldarga || instOpc == Code.Ldarga_S)
                 {
-                    index = ArgumentIndex(param1.Sequence);
-                    arg = true;
+                    if (inst.Operand is ParameterDefinition param)
+                    {
+                        index = ArgumentIndex(param.Sequence);
+                        arg = true;
+                    }
                 }
-                else if (    (    inst.OpCode == OpCodes.Starg
-                               || inst.OpCode == OpCodes.Starg_S)
-                          && inst.Operand is ParameterDefinition param2
-                          && param2.ParameterType.IsValueType
-                          && (! param2.ParameterType.IsPrimitive))
+                else if (instOpc == Code.Starg || instOpc == Code.Starg_S)
                 {
-                    index = ArgumentIndex(param2.Sequence);
-                    arg = true;
+                    if (inst.Operand is ParameterDefinition param)
+                    {
+                        var paramType = param.ParameterType;
+                        if (    (paramType.IsValueType && (! paramType.IsPrimitive))
+                             || (isPointerSpan = paramType.IsPointer))
+                        {
+                            index = ArgumentIndex(param.Sequence);
+                            arg = true;
+                        }
+                    }
                 }
-                else if (    (    inst.OpCode == OpCodes.Ldloca
-                               || inst.OpCode == OpCodes.Ldloca_S)
-                          && inst.Operand is VariableDefinition var)
+                else if (instOpc == Code.Ldloca || instOpc == Code.Ldloca_S)
                 {
-                    index = VariableIndex(var.Index);
-                    arg = false;
+                    if (inst.Operand is VariableDefinition var)
+                    {
+                        index = VariableIndex(var.Index);
+                        arg = false;
+                    }
                 }
-                else
-                    continue;
 
                 //
                 // check if already processed, or does not require processing
                 //
 
-                if (processed[index])
+                if (index == -1 || processed[index])
                     continue;
                 processed[index] = true;
 
@@ -274,17 +284,20 @@ namespace SpaceFlint.CilToJava
 
                 //
                 // copy class value type argument, or generic parameter, if
-                // it  was indeed passed by value, because we know the method
-                // is going to modify the value
+                // it was indeed passed by value, because we know the method
+                // is going to modify the value.  (this also applies to a
+                // pointer, which is passed as a span, a value type object.)
                 //
 
-                if (plainType.IsValueClass || plainType.IsGenericParameter)
+                if (    plainType.IsValueClass
+                     || plainType.IsGenericParameter
+                     || isPointerSpan)
                 {
                     if (arg)
                     {
                         InitLocalsRefs2(plainType, null, true, index);
 
-                        if (plainType.IsGenericParameter)
+                        if (plainType.IsGenericParameter || isPointerSpan)
                         {
                             // must not set the stackmap for a generic parameter,
                             // see InitLocalsArgs for the difference between the
@@ -331,10 +344,6 @@ namespace SpaceFlint.CilToJava
             if (boxedType != null)
             {
                 boxedType.BoxValue(code);
-                #if false
-                if (plainType.IsEnum)
-                    code.NewInstruction(0xC0 /* checkcast */, boxedType, null);
-                #endif
             }
             else if (plainType.IsGenericParameter)
             {

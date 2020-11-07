@@ -209,6 +209,13 @@ namespace SpaceFlint.CilToJava
                     callClass = CilType.From(new JavaType(0, 0, altClassName));
                 }
 
+                else if (    callClass.ClassName == "system.Convert"
+                          && callMethod.Name.IndexOf("Base64") != -1)
+                {
+                    // redirect calls to Base64 methods
+                    callClass = CilType.From(new JavaType(0, 0, "system.text.Base64"));
+                }
+
                 op = 0xB8; // invokestatic
             }
             else if (callMethod.IsConstructor || currentClass.IsDerivedFrom(callClass))
@@ -431,6 +438,30 @@ namespace SpaceFlint.CilToJava
 
                 return true;
             }
+
+            if (callMethod.Name == "toString" && callClass.Equals(JavaType.ObjectType))
+            {
+                // convert virtual call to java.lang.Object.toString() to
+                // a static call to system.Exception.ToString(java.lang.Throwable)
+                // but only if the object on the stack is java.lang.Throwable
+
+                var stackTop = stackMap.PopStack(CilMain.Where);
+                stackMap.PushStack(stackTop);
+                if (stackTop.Equals(JavaType.ThrowableType))
+                {
+                    code.NewInstruction(0xB8 /* invokestatic */,
+                                        new JavaType(0, 0, "system.Exception"),
+                                        new JavaMethodRef(
+                                                "ToString", callMethod.ReturnType,
+                                                JavaType.ThrowableType));
+
+                    ClearMethodArguments(callMethod, false);
+                    PushMethodReturnType(callMethod);
+
+                    return true;
+                }
+            }
+
 
             return false;
         }
@@ -800,6 +831,25 @@ namespace SpaceFlint.CilToJava
                 // cast to the final return value, and replace it on the stack
                 returnType = GenericUtil.CastMaybeGeneric(
                                     returnType, returnType.IsByReference, code);
+
+                if (! returnType.IsReference)
+                {
+                    int mask = 0;
+                    if (returnType.PrimitiveType == TypeCode.Byte)
+                        mask = 0xFF;
+                    else if (returnType.PrimitiveType == TypeCode.UInt16)
+                        mask = 0xFFFF;
+                    if (mask != 0)
+                    {
+                        // if the method returns byte or ushort, we have to
+                        // truncate the high bits of the integer on the stack
+                        stackMap.PushStack(JavaType.IntegerType);
+                        code.NewInstruction(0x12 /* ldc */, null, (int) mask);
+                        code.NewInstruction(0x7E /* iand */, null, null);
+                        stackMap.PopStack(CilMain.Where);
+                    }
+                }
+
                 stackMap.PopStack(CilMain.Where);
                 stackMap.PushStack(returnType);
             }
@@ -820,7 +870,29 @@ namespace SpaceFlint.CilToJava
                 {
                     // if not an array, then it might be a span.
                     // box a span that is returned as a by-reference
-                    CodeSpan.Box(returnType, stackTop, code);
+                    if (! CodeSpan.Box(returnType, stackTop, code))
+                    {
+                        // not a span, check if returning a generic array
+                        // in a method that returns a non-generic array
+                        if (object.ReferenceEquals(stackTop, CodeArrays.GenericArrayType)
+                                && returnType.ArrayRank != 0)
+                        {
+                            code.NewInstruction(0xC0 /* checkcast */, returnType, null);
+                        }
+                    }
+                }
+            }
+
+            else if (returnType.NewArrayType == 5) // Char and UInt16
+            {
+                var stackTop = (CilType) stackMap.PopStack(CilMain.Where);
+                if ((! stackTop.IsReference) && (
+                            stackTop.PrimitiveType == TypeCode.Byte
+                         || stackTop.PrimitiveType == TypeCode.SByte))
+                {
+                    // work around a verification error by Android when
+                    // a byte value is passed for a char return value
+                    code.NewInstruction(0x92 /* i2c */, null, null);
                 }
             }
 

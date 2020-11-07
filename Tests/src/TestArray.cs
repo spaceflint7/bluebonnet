@@ -23,6 +23,7 @@ namespace Tests
             TestValue(true);
             TestGeneric2<int>(new int[2]);
             TestString("Hello, World!");
+            TestMisc();
         }
 
         void TestAccess()
@@ -412,6 +413,18 @@ namespace Tests
             /*Console.WriteLine( (s as System.Collections.IEnumerable).GetEnumerator());
             Console.WriteLine("String Castable to IComparable? " + ((s as System.IComparable) != null));
             Console.WriteLine("String Castable to IConvertible? " + ((s as System.IConvertible) != null));*/
+        }
+
+        void TestMisc()
+        {
+            var arr = new (string, int) [10];
+            var (item0s, item0i) = arr[0];
+
+            var list = new System.Collections.Generic.List<int[]>();
+            var arr1 = new int[] { 1, 2, 3 };
+            list.Add(arr1);
+            var arr2 = list.ToArray();
+            PrintArray(arr2[0]);
         }
 
     }

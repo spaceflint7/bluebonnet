@@ -131,7 +131,25 @@ namespace SpaceFlint.CilToJava
 
                 stackMap.PushStack(arrayType);  // arrayObj
 
-                if (elemType.IsValueClass)
+                if (elemType.ArrayRank != 0)
+                {
+                    if (numDims == 1)
+                    {
+                        // notify the array support methods in baselib that this
+                        // is a jagged array, i.e. a single dimension array with
+                        // an element type that is also an array.  for arrays of
+                        // generic type, see system.Array.New() in baselib.
+
+                        stackMap.PushStack(JavaType.ObjectType);
+                        code.NewInstruction(0x59 /* dup */, null, null);
+                        code.NewInstruction(0xB8 /* invokestatic */, SystemArrayType,
+                                            new JavaMethodRef("MarkJagged",
+                                                JavaType.VoidType, JavaType.ObjectType));
+                        stackMap.PopStack(CilMain.Where);
+                    }
+                }
+
+                else if (elemType.IsValueClass)
                 {
                     code.NewInstruction(0x59 /* dup */, null, null);
                     stackMap.PushStack(arrayType);      // arrayCopy
@@ -242,7 +260,8 @@ namespace SpaceFlint.CilToJava
 
                     break;
 
-                case Code.Ldelem_I1: case Code.Ldelem_U1:   elemCode = TypeCode.Byte;   break;
+                case Code.Ldelem_I1:                        elemCode = TypeCode.SByte;  break;
+                case Code.Ldelem_U1:                        elemCode = TypeCode.Byte;   break;
                 case Code.Ldelem_U2:                        elemCode = TypeCode.Char;   break;
                 case Code.Ldelem_I2:                        elemCode = TypeCode.Int16;  break;
                 case Code.Ldelem_I4: case Code.Ldelem_U4:   elemCode = TypeCode.Int32;  break;
@@ -289,8 +308,21 @@ namespace SpaceFlint.CilToJava
 
                 code.NewInstruction(elemType.LoadArrayOpcode, null, null);
 
+                if (elemType.PrimitiveType == TypeCode.Byte)
+                {
+                    // unsigned byte result should be truncated to 8-bits
+                    stackMap.PushStack(JavaType.IntegerType);
+                    code.NewInstruction(0x12 /* ldc */, null, (int) 0xFF);
+                    code.NewInstruction(0x7E /* iand */, null, null);
+                    stackMap.PopStack(CilMain.Where);
+                }
+
                 if (arrayType.IsValueClass || elemType.IsValueClass)
+                {
                     CilMethod.ValueMethod(CilMethod.ValueClone, code);
+                    if (elemType.IsValueClass)
+                        code.NewInstruction(0xC0 /* checkcast */, elemType, null);
+                }
             }
 
             stackMap.PushStack(elemType);

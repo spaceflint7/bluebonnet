@@ -105,7 +105,7 @@ namespace system.threading
                     }
 
                     if (java.lang.Thread.interrupted())
-                        throw new java.lang.InterruptedException();
+                        throw new System.Threading.ThreadInterruptedException();
 
                     if (DoAcquire(waitObjs, waitCount, waitAll, thread))
                         return true;

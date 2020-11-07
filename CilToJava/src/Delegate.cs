@@ -17,7 +17,15 @@ namespace SpaceFlint.CilToJava
             JavaType interfaceType = InterfaceType(fromType);
             JavaClass interfaceClass = null;
 
-            foreach (var method in fromClass.Methods)
+            var fromMethods = fromClass.Methods;
+            for (int i = fromMethods.Count; i-- > 0; )
+            {
+                var nm = fromMethods[i].Name;
+                if (nm == "BeginInvoke" || nm == "EndInvoke")
+                    fromClass.Methods.RemoveAt(i);
+            }
+
+            foreach (var method in fromMethods)
             {
                 if ((method.Flags & JavaAccessFlags.ACC_STATIC) == 0 && method.Code == null)
                 {
@@ -33,7 +41,7 @@ namespace SpaceFlint.CilToJava
                         interfaceClass = MakeInterface(fromClass, method, interfaceType.ClassName);
                         GenerateInvoke(method, fromType, interfaceType);
                     }
-                    else if (method.Name == "BeginInvoke")
+                    /*else if (method.Name == "BeginInvoke")
                     {
                         if (interfaceClass == null)
                             break;
@@ -45,7 +53,7 @@ namespace SpaceFlint.CilToJava
                     {
                         GenerateEndInvoke();
                         continue;
-                    }
+                    }*/
                     else
                         break;
 
@@ -297,17 +305,17 @@ namespace SpaceFlint.CilToJava
             //
             //
 
-            void GenerateBeginInvoke()
+            /*void GenerateBeginInvoke()
             {
-            }
+            }*/
 
             //
             //
             //
 
-            void GenerateEndInvoke()
+            /*void GenerateEndInvoke()
             {
-            }
+            }*/
         }
 
 

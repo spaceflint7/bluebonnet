@@ -5,7 +5,7 @@ namespace system.runtime.compilerservices
     public class IdentifierWeakTable
     {
 
-        sealed class TrackedObject : java.lang.@ref.WeakReference
+        public class TrackedObject : java.lang.@ref.WeakReference
         {
             [java.attr.RetainType] public int id;
             public TrackedObject(int id, object obj, java.lang.@ref.ReferenceQueue refq)
@@ -14,7 +14,12 @@ namespace system.runtime.compilerservices
 
 
 
-        public int Generate(object trackedObject)
+        public delegate TrackedObject TrackedObjectMaker(
+                            int id, object objref, java.lang.@ref.ReferenceQueue refq);
+
+
+
+        public int Generate(object target, TrackedObjectMaker maker)
         {
             javaLock.@lock();
             try
@@ -37,7 +42,7 @@ namespace system.runtime.compilerservices
                     var key = java.lang.Integer.valueOf(id);
                     if (! map.containsKey(key))
                     {
-                        map.put(key, new TrackedObject(id, trackedObject, refq));
+                        map.put(key, maker(id, target, refq));
                         return id;
                     }
                 }
@@ -50,15 +55,13 @@ namespace system.runtime.compilerservices
 
 
 
-        public object GetObject(int id)
+        public TrackedObject GetTrackedObject(int id)
         {
-            object obj = null;
+            TrackedObject obj = null;
             javaLock.@lock();
             try
             {
-                var trackedObject = map.get(java.lang.Integer.valueOf(id));
-                if (trackedObject != null)
-                    obj = ((TrackedObject) trackedObject).get();
+                obj = (TrackedObject) map.get(java.lang.Integer.valueOf(id));
             }
             finally
             {
@@ -69,9 +72,50 @@ namespace system.runtime.compilerservices
 
 
 
-        public static int GlobalGenerate(object trackedObject) => GlobalInstance.Generate(trackedObject);
-        public static object GlobalGetObject(int id) => GlobalInstance.GetObject(id);
+        public TrackedObject GetTrackedObject(object target)
+        {
+            TrackedObject obj = null;
+            javaLock.@lock();
+            try
+            {
+                var it = map.values().iterator();
+                while (it.hasNext())
+                {
+                    var trackedObject = (TrackedObject) it.next();
+                    if (object.ReferenceEquals(trackedObject.get(), target))
+                    {
+                        obj = trackedObject;
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                javaLock.@unlock();
+            }
+            return obj;
+        }
 
+
+
+        //
+        // helpers for the common case
+        //
+
+        [java.attr.RetainType] public readonly static IdentifierWeakTable Global =
+                                                                new IdentifierWeakTable();
+
+        public static int GlobalGenerate(object trackedObject)
+            => Global.Generate(trackedObject,
+                    (id, objref, refq) => new TrackedObject(id, trackedObject, refq));
+
+        public static object GlobalGetObject(int id) => Global.GetTrackedObject(id)?.get();
+
+
+
+        //
+        // data
+        //
 
         [java.attr.RetainType] readonly java.util.concurrent.atomic.AtomicInteger nextId =
                         new java.util.concurrent.atomic.AtomicInteger(
@@ -83,10 +127,6 @@ namespace system.runtime.compilerservices
         [java.attr.RetainType] readonly java.util.HashMap map = new java.util.HashMap();
 
         [java.attr.RetainType] readonly java.lang.@ref.ReferenceQueue refq = new java.lang.@ref.ReferenceQueue();
-
-
-
-        [java.attr.RetainType] static IdentifierWeakTable GlobalInstance = new IdentifierWeakTable();
 
     }
 

@@ -23,6 +23,110 @@ namespace system.io
             Flags = flags;
         }
 
+        public FileStream(string path, System.IO.FileMode mode)
+            : this(path, mode, (mode == System.IO.FileMode.Append
+                    ? System.IO.FileAccess.Write : System.IO.FileAccess.ReadWrite)) { }
+
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access)
+        {
+            ThrowHelper.ThrowIfNull(path);
+
+            if ((int) access < 1 || (int) access > 3)
+                throw new System.ArgumentOutOfRangeException();
+
+            switch (mode)
+            {
+                case System.IO.FileMode.CreateNew:      CreateIfNotExist(); break;
+                case System.IO.FileMode.Create:         CreateOrTruncate(); break;
+                case System.IO.FileMode.Open:           OpenExisting();     break;
+                case System.IO.FileMode.OpenOrCreate:   OpenOrCreate();     break;
+                case System.IO.FileMode.Truncate:       TruncateExisting(); break;
+                case System.IO.FileMode.Append:         AppendOrCreate();   break;
+                default:           throw new System.ArgumentOutOfRangeException();
+            }
+
+            void CreateIfNotExist()
+            {
+                // create a new file; throw IOException if exists
+                if (access == System.IO.FileAccess.Read)
+                    throw new System.ArgumentException(access.ToString());
+                try
+                {
+                    var stream = new java.io.RandomAccessFile(path, "r");
+                    stream.close();
+                    throw new System.IO.IOException("Exists: " + path);
+                }
+                catch (java.io.FileNotFoundException)
+                {
+                }
+                JavaChannel = new java.io.RandomAccessFile(path, "rw").getChannel();
+                Flags = CAN_WRITE | CAN_SEEK;
+            }
+
+            void CreateOrTruncate()
+            {
+                // create a new file or truncate an existing file
+                if (access == System.IO.FileAccess.Read)
+                    throw new System.ArgumentException(access.ToString());
+                var stream = new java.io.RandomAccessFile(path, "rw");
+                stream.setLength(0);
+                JavaChannel = stream.getChannel();
+                Flags = CAN_WRITE | CAN_SEEK;
+            }
+
+            void OpenExisting()
+            {
+                // open existing file, throwing FileNotFoundException if cannot
+                var stream = new java.io.RandomAccessFile(path, "r");
+                if (access != System.IO.FileAccess.Read)
+                {
+                    // knowing the file exists, reopen for writing if necessary
+                    stream.close();
+                    stream = new java.io.RandomAccessFile(path, "rw");
+                    Flags = CAN_READ | CAN_WRITE | CAN_SEEK;
+                }
+                else
+                    Flags = CAN_READ | CAN_SEEK;
+                JavaChannel = stream.getChannel();
+            }
+
+            void OpenOrCreate()
+            {
+                // open existing file, or create a new file
+                JavaChannel = new java.io.RandomAccessFile(path, "rw").getChannel();
+                if (access != System.IO.FileAccess.Read)
+                    Flags = CAN_READ | CAN_WRITE | CAN_SEEK;
+                else
+                    Flags = CAN_READ | CAN_SEEK;
+            }
+
+            void TruncateExisting()
+            {
+                // truncate existing file, or throws FileNotFoundException
+                if (access == System.IO.FileAccess.Read)
+                    throw new System.ArgumentException(access.ToString());
+                var stream = new java.io.RandomAccessFile(path, "r");
+                stream.close();
+                stream = new java.io.RandomAccessFile(path, "rw");
+                stream.setLength(0);
+                JavaChannel = stream.getChannel();
+                Flags = CAN_WRITE | CAN_SEEK;
+            }
+
+            void AppendOrCreate()
+            {
+                var stream = new java.io.RandomAccessFile(path, "rw");
+                stream.seek(stream.length());
+                JavaChannel = stream.getChannel();
+                Flags = CAN_WRITE | CAN_SEEK;
+            }
+
+        }
+
+        //
+        // properties
+        //
+
         public override bool CanRead => (Flags & CAN_READ) != 0;
         public override bool CanWrite => (Flags & CAN_WRITE) != 0;
         public override bool CanSeek => (Flags & CAN_SEEK) != 0;
@@ -32,8 +136,8 @@ namespace system.io
 
         public override long Position
         {
-            get => throw new System.PlatformNotSupportedException();
-            set => throw new System.PlatformNotSupportedException();
+            get => JavaChannel.position();
+            set => JavaChannel.position(value);
         }
 
         public override void Flush()
@@ -84,6 +188,19 @@ namespace system.io
 
         public override long Seek(long offset, System.IO.SeekOrigin origin)
             => throw new System.PlatformNotSupportedException();
+
+        //
+        // static constructor
+        //
+
+        static FileStream()
+        {
+            system.Util.DefineException(
+                (java.lang.Class) typeof(java.io.FileNotFoundException),
+                (exc) => new System.IO.FileNotFoundException(exc.getMessage())
+            );
+        }
+
     }
 
 }

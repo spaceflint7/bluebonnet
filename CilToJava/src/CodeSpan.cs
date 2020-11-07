@@ -461,6 +461,23 @@ namespace SpaceFlint.CilToJava
                 return true;
             }
 
+            if (    stackTop.Equals(JavaType.LongType)
+                 && methodRef.ReturnType.IsPrimitive
+                 && (    (    methodRef.ReturnType.Name == "Int64"
+                           && methodRef.Parameters[0].ParameterType.Name == "IntPtr")
+                      || (    methodRef.ReturnType.Name == "IntPtr"
+                           && methodRef.Parameters[0].ParameterType.Name == "Int64")))
+            {
+                // translate call from
+                //      long System.IntPtr::op_Explicit(System.IntPtr)
+                //      IntPtr System.IntPtr::op_Explicit(long)
+                // to - nop
+
+                code.NewInstruction(0x00 /* nop */, null, null);
+                code.StackMap.PushStack(stackTop);
+                return true;
+            }
+
             code.StackMap.PushStack(stackTop);
             return false;
         }

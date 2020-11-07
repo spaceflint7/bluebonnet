@@ -17,8 +17,14 @@ namespace system
                 throw new System.ArgumentNullException();
         }
 
+        public static void ThrowArgumentOutOfRangeException()
+            => throw new System.ArgumentOutOfRangeException("index");
+
         public static void ThrowKeyNotFoundException()
             => throw new System.Collections.Generic.KeyNotFoundException();
+
+        /*public static void ThrowNotImplementedException()
+            => throw new System.NotImplementedException();*/
     }
 
 }
