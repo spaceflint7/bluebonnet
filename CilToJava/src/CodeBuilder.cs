@@ -418,7 +418,7 @@ namespace SpaceFlint.CilToJava
                 case Code.Stelem_I: case Code.Stelem_R4:case Code.Stelem_R8:case Code.Stelem_Any:
                 case Code.Stelem_Ref:
 
-                    arrays.Store(cilOp);
+                    arrays.Store(cilOp, cilInst);
                     break;
 
                 case Code.Ldftn: case Code.Ldvirtftn:

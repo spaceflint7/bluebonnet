@@ -27,6 +27,9 @@ namespace system.io
             : this(path, mode, (mode == System.IO.FileMode.Append
                     ? System.IO.FileAccess.Write : System.IO.FileAccess.ReadWrite)) { }
 
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share)
+            : this(path, mode, access) { }
+
         public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access)
         {
             ThrowHelper.ThrowIfNull(path);
@@ -131,8 +134,7 @@ namespace system.io
         public override bool CanWrite => (Flags & CAN_WRITE) != 0;
         public override bool CanSeek => (Flags & CAN_SEEK) != 0;
 
-        public override long Length
-            => throw new System.PlatformNotSupportedException();
+        public override long Length => JavaChannel.size();
 
         public override long Position
         {
@@ -184,10 +186,23 @@ namespace system.io
         }
 
         public override void SetLength(long value)
-            => throw new System.PlatformNotSupportedException();
+        {
+            if (value < 0)
+                throw new System.ArgumentOutOfRangeException();
+            JavaChannel.truncate(value);
+        }
 
         public override long Seek(long offset, System.IO.SeekOrigin origin)
-            => throw new System.PlatformNotSupportedException();
+        {
+            if (origin == System.IO.SeekOrigin.Current)
+                offset += JavaChannel.position();
+            else if (origin == System.IO.SeekOrigin.End)
+                offset = JavaChannel.size() - offset;
+            else if (origin != System.IO.SeekOrigin.Begin)
+                throw new System.ArgumentException();
+            JavaChannel.position(offset);
+            return JavaChannel.position();
+        }
 
         //
         // static constructor
@@ -199,6 +214,17 @@ namespace system.io
                 (java.lang.Class) typeof(java.io.FileNotFoundException),
                 (exc) => new System.IO.FileNotFoundException(exc.getMessage())
             );
+
+            system.Util.DefineException(
+                (java.lang.Class) typeof(java.nio.channels.NonWritableChannelException),
+                (exc) => new System.NotSupportedException(exc.getMessage())
+            );
+
+            system.Util.DefineException(
+                (java.lang.Class) typeof(java.nio.channels.ClosedChannelException),
+                (exc) => new System.ObjectDisposedException(exc.getMessage())
+            );
+
         }
 
     }

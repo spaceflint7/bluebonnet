@@ -8,6 +8,13 @@ namespace system
         public static void InternalBlockCopy(Array src, int srcOffsetBytes,
                                              Array dst, int dstOffsetBytes, int byteCount)
         {
+            if (src.SyncRoot is sbyte[] srcBytes && dst.SyncRoot is sbyte[] dstBytes)
+            {
+                java.lang.System.arraycopy(srcBytes, srcOffsetBytes,
+                                           dstBytes, dstOffsetBytes, byteCount);
+                return;
+            }
+
             if (src.SyncRoot is char[] srcChars && dst.SyncRoot is char[] dstChars)
             {
                 int srcIndex = srcOffsetBytes >> 1;
@@ -21,6 +28,7 @@ namespace system
                     return;
                 }
             }
+
             throw new System.PlatformNotSupportedException(
                                 "InternalBlockCopy/" + src.GetType() + "/" + dst.GetType());
         }

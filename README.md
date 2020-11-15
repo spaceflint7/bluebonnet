@@ -58,6 +58,8 @@ There are some additional demos:
     - Note that the Android demos require the `ANDROID_HOME` environment directory, and the project is hard-coded to use Android platform version 28, and build-tools 30.0.2
     - Note also that the Android demos build an APK file, but do not install it.
 
+See the [BNA](https://github.com/spaceflint7/bna) repository for another demo for Android.
+
 ## Usage
 
 For more information about using Bluebonnet, please see the [USAGE.md](USAGE.md) file.  That document also records any known differences and deficiencies, compared to a proper .NET implementation.

@@ -121,7 +121,18 @@ namespace SpaceFlint.CilToJava
                 else if (dstType.IsReference)
                 {
                     CodeArrays.CheckCast(dstType, true, code);
-                    if (dstType.IsGenericParameter)
+
+                    if (    srcType.ArrayRank != 0
+                         && srcType.ArrayRank == dstType.ArrayRank
+                         && srcType.PrimitiveType != 0
+                         && dstType.PrimitiveType != 0
+                         && srcType.AdjustRank(-srcType.ArrayRank).NewArrayType
+                                == dstType.AdjustRank(-dstType.ArrayRank).NewArrayType)
+                    {
+                        // casting to same java array type, e.g. byte[] to sbyte[]
+                        op = 0x00; // nop
+                    }
+                    else if (dstType.IsGenericParameter)
                         op = 0x00; // nop
                     else
                         op = 0xC0; // checkcast

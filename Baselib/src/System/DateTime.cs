@@ -82,7 +82,7 @@ namespace system
         // ToString
         //
 
-        public override string ToString() => JavaCalendar.ToString();
+        public override string ToString() => ToString(null, null);
 
         public string ToString(IFormatProvider provider) => ToString(null, provider);
 
@@ -206,6 +206,23 @@ namespace system
 
         public static bool operator >= (DateTime d1, DateTime d2)
             => d1.Ticks >= d2.Ticks;
+
+        //
+        // SpecifyKind, ToUniversalTime, ToLocalTime
+        //
+
+        public static DateTime SpecifyKind(DateTime value, DateTimeKind kind)
+        {
+            var javaCalendar = java.util.Calendar.getInstance();
+            if (kind == DateTimeKind.Utc)
+                javaCalendar.setTimeZone(TimeZoneUTC);
+            javaCalendar.setTimeInMillis(value.JavaCalendar.getTimeInMillis());
+            return new DateTime(javaCalendar, kind);
+        }
+
+        public DateTime ToUniversalTime() => SpecifyKind(this, DateTimeKind.Utc);
+
+        public DateTime ToLocalTime()     => SpecifyKind(this, DateTimeKind.Local);
 
         //
         // ISerializable

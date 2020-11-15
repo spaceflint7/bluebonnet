@@ -255,6 +255,13 @@ namespace system.text
             return bytes;
         }
 
+        public virtual int GetBytes(string s, int charIndex, int charCount,
+                                    byte[] bytes, int byteIndex)
+        {
+            ThrowHelper.ThrowIfNull(s);
+            return GetBytes(s.ToCharArray(), charIndex, charCount, bytes, byteIndex);
+        }
+
         public virtual string GetString(byte[] bytes)
         {
             ThrowHelper.ThrowIfNull(bytes);

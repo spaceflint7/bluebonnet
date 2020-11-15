@@ -142,14 +142,18 @@ System.Runtime.Serialization.StreamingContext
 System.Runtime.Serialization.SerializationException
 
 System.IO.BinaryReader
+System.IO.BinaryWriter
 System.IO.DirectoryNotFoundException
 System.IO.EndOfStreamException
 System.IO.FileAccess
+System.IO.FileAttributes
 System.IO.FileMode
 System.IO.FileNotFoundException
+System.IO.FileShare
 System.IO.MemoryStream
 System.IO.TextReader
 System.IO.TextWriter
+System.IO.SeekOrigin
 System.IO.StringReader
 System.IO.Stream
 System.IO.StreamReader

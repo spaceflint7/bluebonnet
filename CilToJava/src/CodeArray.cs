@@ -330,7 +330,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public void Store(Code op)
+        public void Store(Code op, Mono.Cecil.Cil.Instruction inst)
         {
             TypeCode elemType;
 
@@ -338,7 +338,7 @@ namespace SpaceFlint.CilToJava
             {
                 case Code.Stelem_Ref: case Code.Stelem_Any:
 
-                    Store(null);
+                    Store(null, null);
                     return;
 
                 case Code.Stelem_I1:                        elemType = TypeCode.Byte;   break;
@@ -351,12 +351,12 @@ namespace SpaceFlint.CilToJava
                 default:                                    throw new InvalidProgramException();
             }
 
-            Store(CilType.From(new JavaType(elemType, 0, null)));
+            Store(CilType.From(new JavaType(elemType, 0, null)), inst);
         }
 
 
 
-        void Store(CilType elemType)
+        void Store(CilType elemType, Mono.Cecil.Cil.Instruction inst)
         {
             stackMap.PopStack(CilMain.Where);                               // value
             stackMap.PopStack(CilMain.Where);                               // index
@@ -406,12 +406,40 @@ namespace SpaceFlint.CilToJava
                     elemType = arrayType.AdjustRank(-arrayType.ArrayRank);
                 }
 
+                CheckImmediate(arrayType.PrimitiveType, inst);
+
                 if (arrayType.IsValueClass || elemType.IsValueClass)
                 {
                     CilMethod.ValueMethod(CilMethod.ValueClone, code);
                 }
 
                 code.NewInstruction(elemType.StoreArrayOpcode, null, null);
+            }
+
+
+            void CheckImmediate(TypeCode arrayPrimitiveType, Mono.Cecil.Cil.Instruction inst)
+            {
+                // Android AOT aborts the compilation with a crash if storing
+                // an immediate value that does not fit in the target array.
+                if (    inst != null && inst.Previous != null
+                     && inst.Previous.OpCode.Code == Code.Ldc_I4)
+                {
+                    var imm = (int) inst.Previous.Operand;
+                    if (     arrayType.PrimitiveType == TypeCode.Boolean
+                          || arrayType.PrimitiveType == TypeCode.SByte
+                          || arrayType.PrimitiveType == TypeCode.Byte)
+                    {
+                        if (imm < -128 || imm >= 128)
+                            code.NewInstruction(0x91 /* i2b */, null, null);
+                    }
+                    else if (    arrayType.PrimitiveType == TypeCode.Char
+                              || arrayType.PrimitiveType == TypeCode.Int16
+                              || arrayType.PrimitiveType == TypeCode.UInt16)
+                    {
+                        if (imm < -32768 || imm >= 32768)
+                            code.NewInstruction(0x93 /* i2s */, null, null);
+                    }
+                }
             }
         }
 
@@ -505,7 +533,7 @@ namespace SpaceFlint.CilToJava
                     stackMap.PushStack(valueType);
                 }
 
-                Store(elemType);
+                Store(elemType, null);
             }
 
             else if (method.Name == "Address")

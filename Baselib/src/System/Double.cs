@@ -158,6 +158,29 @@ namespace system
 
 
         //
+        // CodeNumber.Indirection methods
+        //
+
+        public int Get_U8() => throw new System.NotSupportedException();
+        public int Get_I8() => throw new System.NotSupportedException();
+        public void Set_I8(int v) => throw new System.NotSupportedException();
+
+        public int Get_U16() => throw new System.NotSupportedException();
+        public int Get_I16() => throw new System.NotSupportedException();
+        public void Set_I16(int v) => throw new System.NotSupportedException();
+
+        public int Get_I32() => throw new System.NotSupportedException();
+        public void Set_I32(int v) => throw new System.NotSupportedException();
+
+        public long Get_I64() => java.lang.Double.doubleToRawLongBits(v);
+        public void Set_I64(long v) => Set(java.lang.Double.longBitsToDouble(v));
+
+        public double Get_F64() => throw new System.NotSupportedException();
+        public void Set_F64(double v) => throw new System.NotSupportedException();
+
+
+
+        //
         // IConvertible
         //
 

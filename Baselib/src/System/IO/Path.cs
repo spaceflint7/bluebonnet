@@ -13,7 +13,7 @@ namespace system.io
 
         public static bool IsPathRooted(string path) => false;
 
-        public static string Combine (string path1, string path2)
+        public static string Combine(string path1, string path2)
         {
             path1 = CheckPath(path1);
             path2 = CheckPath(path2);
@@ -26,6 +26,12 @@ namespace system.io
             return (ch != '/') ? (path1 + "/" + path2) : (path1 + path2);
         }
 
+        public static string Combine(string path1, string path2, string path3)
+            => Combine(Combine(path1, path2), path3);
+    }
+
+    public static class PathInternal
+    {
     }
 
 }

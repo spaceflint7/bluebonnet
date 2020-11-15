@@ -561,10 +561,10 @@ namespace SpaceFlint.CilToJava
             // if we detect such a conflict at a branch target, we assume this
             // is the cause, and set the stack elements to a common denominator
             // or to the lowest common denominator, java.lang.Object
-            if (    IsReference && other.IsReference && other is CilType other2
-                 && (! this.IsValueClass) && (! other2.IsValueClass))
+            if (IsReference && other.IsReference && other is CilType other2)
             {
-                return FindCommonSuperType(this, other2) ?? CilType.From(JavaType.ObjectType);
+                return FindCommonSuperType(this, other2)
+                                    ?? CilType.From(JavaType.ObjectType);
             }
             return null;
 
