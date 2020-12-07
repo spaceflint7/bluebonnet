@@ -7,3 +7,5 @@ System.ComponentModel.CategoryAttribute
 System.ComponentModel.DescriptionAttribute
 
 System.Text.RegularExpressions.RegexOptions
+
+System.UriKind
