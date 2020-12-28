@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj
 		{085399FC-1934-43A4-A9C8-EC3137BAEA8E} = {085399FC-1934-43A4-A9C8-EC3137BAEA8E}
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PruneMerge", "PruneMerge\PruneMerge.fsproj", "{2F6C6AAD-44DA-4993-BDDB-F6B3F3424916}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{408EA5F6-2A53-4472-90DA-CC80D5ACEA13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F6C6AAD-44DA-4993-BDDB-F6B3F3424916}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F6C6AAD-44DA-4993-BDDB-F6B3F3424916}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F6C6AAD-44DA-4993-BDDB-F6B3F3424916}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F6C6AAD-44DA-4993-BDDB-F6B3F3424916}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

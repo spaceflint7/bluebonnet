@@ -372,6 +372,7 @@ namespace Tests
 
 
 
+
         void TestNestedTry7()
         {
             try
@@ -386,6 +387,7 @@ namespace Tests
                 {
                     Console.WriteLine("Try2.Finally");
                 }
+                #pragma warning disable 0162
                 Console.WriteLine("Try1.Stmt2");
             }
             finally

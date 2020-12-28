@@ -10,6 +10,13 @@ namespace SpaceFlint.JavaBinary
     public class JavaReader
     {
 
+        public class JavaClassEx
+        {
+            public JavaClass JavaClass;
+            public JavaConstantPool Constants;
+            public byte[] RawBytes;
+        }
+
         internal JavaClass Class;
         internal JavaException.Where Where;
 
@@ -31,12 +38,11 @@ namespace SpaceFlint.JavaBinary
 
 
 
-        public static JavaClass ReadClass(System.IO.Compression.ZipArchiveEntry entry,
-                                          bool withCode = true)
+        public static JavaClassEx ReadClassEx(System.IO.Compression.ZipArchiveEntry entry,
+                                              bool withCode = true)
         {
-            JavaClass jclass = null;
-            if (    (! string.IsNullOrEmpty(Path.GetFileName(entry.FullName)))
-                 && entry.Length > 4)
+            if (entry.Length > 4 &&
+                    (! string.IsNullOrEmpty(Path.GetFileName(entry.FullName))))
             {
                 using (var stream = entry.Open())
                 {
@@ -54,19 +60,32 @@ namespace SpaceFlint.JavaBinary
                             stream2.Position = 0;
 
                             var whereText = $"entry '{entry.FullName}' in archive";
-                            jclass = (new JavaReader(stream2, whereText, withCode)).Class;
+                            var rdr = new JavaReader(stream2, whereText, withCode);
 
-                            if (jclass != null)
+                            if (rdr.Class != null)
                             {
-                                jclass.PackageNameLength =
+                                rdr.Class.PackageNameLength =
                                         (short) Path.GetDirectoryName(entry.FullName).Length;
+
+                                return new JavaClassEx
+                                {
+                                    JavaClass = rdr.Class,
+                                    Constants = rdr.constants,
+                                    RawBytes = stream2.ToArray()
+                                };
                             }
                         }
                     }
                 }
             }
-            return jclass;
+            return null;
         }
+
+
+
+        public static JavaClass ReadClass(System.IO.Compression.ZipArchiveEntry entry,
+                                          bool withCode = true)
+            => ReadClassEx(entry, withCode)?.JavaClass;
 
 
 

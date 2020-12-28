@@ -96,6 +96,10 @@ namespace SpaceFlint.JavaBinary
 
 
 
+        public int Count => pool.Count;
+
+
+
         public JavaConstant Get(int index)
         {
             return ((index > 0 && index < pool.Count) ? pool[index] : null);

@@ -562,7 +562,7 @@ namespace SpaceFlint.JavaBinary
 
             ushort lastOffset = 0xFFFF;
             if (! frames.TryGetValue(0, out var lastFrame))
-                throw new Exception("stackmap does not include frame for offset 0");
+                throw wtr.Where.Exception("stackmap does not include frame for offset 0");
 
             var frames3 = new List<JavaAttribute.StackMapTable.Item>();
             foreach (var kvp in frames2)
