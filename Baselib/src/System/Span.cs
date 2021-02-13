@@ -145,7 +145,15 @@ namespace system
 
         [java.attr.RetainName]
         public static System.ValueType Assign(ValueType source)
-            => new Span<T>((T[]) (object) (new ValueType[1] { source }));
+        {
+            return new Span<T>()
+            {
+                array = Reference.Box(new ValueType[1] { source }),
+                count = 1,
+                shift = Shiftof() + 1
+            };
+            // => new Span<T>((T[]) (object) (new ValueType[1] { source }));
+        }
 
         [java.attr.RetainName]
         public static Span<object> Assign(long zero)

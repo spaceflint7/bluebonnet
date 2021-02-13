@@ -600,9 +600,22 @@ namespace SpaceFlint.CilToJava
                         }
                         if (sameParameters)
                         {
-                            //Console.WriteLine($"proxying {targetMethod} in class {targetMethod.DeclType}");
-                            BuildGenericProxy2(baseMethod, targetMethod,
-                                               false, targetMethod.DeclType, intoClass);
+                            if (baseMethod.Method.WithGenericParameters.ToString()
+                                    != targetMethod.WithGenericParameters.ToString())
+                            {
+                                // the proxy method may have the same signature as the
+                                // target method.  for example in a generic class that
+                                // inherits from a generic class:
+                                //     class A<T> { virtual T Method(T arg); }
+                                // and class B<T> : A<T> { override T Method(T arg); }
+                                // in such a case, we should not generate a specialized
+                                // proxy for the generic method in class B.
+                                //
+
+                                //Console.WriteLine($"proxying {targetMethod} in class {targetMethod.DeclType}");
+                                BuildGenericProxy2(baseMethod, targetMethod,
+                                                   false, targetMethod.DeclType, intoClass);
+                            }
                             return;
                         }
                     }

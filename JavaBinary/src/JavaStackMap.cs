@@ -358,7 +358,7 @@ namespace SpaceFlint.JavaBinary
                 {
                     if (! frm.locals[index].Equals(type))
                     {
-                        if (frm.locals[index] != Top)
+                        if (Where != null && frm.locals[index] != Top)
                             throw Where.Exception($"local already assigned in stack frame");
                         frm.locals[index] = type;
                     }

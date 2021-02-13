@@ -35,6 +35,7 @@ namespace system
 
             int len = format.length();
 
+            bool explicit_width = false;
             int width = -1;
             if (len == 1)
                 width = 0;
@@ -72,18 +73,22 @@ namespace system
 
                 case 'D':
                     c = isInt ? 'd' : (char) 0;
+                    pfx = '0';
                     break;
 
                 case 'N':
                     if (isInt)
                     {
                         c = 'd';
-                        pfx = ',';
                         sfx = "." + new string('0', width);
                         width = 0;
                     }
                     else
+                    {
                         c = 'f';
+                        explicit_width = true;  // set width even if zero
+                    }
+                    pfx = ',';
                     break;
 
                 case 'P':
@@ -116,7 +121,7 @@ namespace system
                 var format1 = "%";
                 if (pfx != 0)
                     format1 += pfx;
-                if (width != 0)
+                if (explicit_width || width != 0)
                 {
                     if (! isInt)
                         format1 += ".";

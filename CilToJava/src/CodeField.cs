@@ -403,7 +403,31 @@ namespace SpaceFlint.CilToJava
                     // is a value class that is assigned before the call to the
                     // base constructor.
 
-                    if (fldType.IsValueClass)
+                    if (fldType.IsGenericParameter)
+                    {
+                        // if the field has a generic type, we first need to allocate
+                        // it (as would be done by ValueUtil.ConstructValue) and then
+                        // copy the value on the stack into it
+
+                        GenericUtil.LoadMaybeGeneric(fldType, code);
+                        code.NewInstruction(0xB8 /* invokestatic */, GenericUtil.SystemGenericType,
+                            new JavaMethodRef("New", CilType.SystemValueType, CilType.SystemTypeType));
+
+                        // use dup_x1 to arrange the stack as (newObj, sourceObj, newObj)
+                        code.NewInstruction(0x5A /* dup_x1 */, null, null);
+                        stackMap.PushStack(fldType);
+                        stackMap.PushStack(fldType);
+
+                        // call GenericType.Copy(fromObj, toObj) in baselib
+                        code.NewInstruction(0xB8 /* invokestatic */, GenericUtil.SystemGenericType,
+                                            new JavaMethod("Copy", JavaType.VoidType,
+                                                    JavaType.ObjectType, JavaType.ObjectType));
+
+                        stackMap.PopStack(CilMain.Where);
+                        stackMap.PopStack(CilMain.Where);
+                    }
+
+                    else if (fldType.IsValueClass)
                     {
                         CilMethod.ValueMethod(CilMethod.ValueClone, code);
                         code.NewInstruction(0xC0 /* checkcast */, fldType.AsWritableClass, null);

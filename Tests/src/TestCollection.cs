@@ -23,8 +23,8 @@ namespace Tests
 
             //TestDictionary();
             TestSet();
-
             TestStack();
+            TestHash();
         }
 
 
@@ -125,6 +125,19 @@ namespace Tests
                 stk.Push(elem);
                 return stk;
             }
+        }
+
+
+
+        public void TestHash()
+        {
+            var dict = new System.Collections.Hashtable();
+            dict["int1"] = (int) 10;
+            dict["int2"] = (int) 20;
+            int sum = 0;
+            foreach (var key in dict.Keys)
+                sum += (int) dict[key];
+            Console.WriteLine(sum);
         }
 
     }

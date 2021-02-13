@@ -592,13 +592,15 @@ namespace SpaceFlint.CilToJava
                 var castType = (CilType) CilType.From(cilType);
                 JavaType castClass = CilType.From(cilType).AsWritableClass;
 
-                if (GenericUtil.ShouldCallGenericCast(stackTop, castType))
+                if (    GenericUtil.ShouldCallGenericCast(stackTop, castType)
+                     || castType.IsGenericParameter)
                 {
                     code.StackMap.PushStack(stackTop);
                     // casting to a generic type is done via GenericType.TestCast
                     GenericUtil.CastToGenericType(cilType, 0, code);
                     code.StackMap.PopStack(CilMain.Where);  // stackTop
-                    code.NewInstruction(0xC0 /* checkcast */, castClass, null);
+                    if (! castType.IsGenericParameter)
+                        code.NewInstruction(0xC0 /* checkcast */, castClass, null);
                     code.StackMap.PushStack(castClass);
                 }
 

@@ -57,6 +57,8 @@ System.IFormattable
 System.IFormatProvider
 System.InvalidCastException
 System.IServiceProvider
+System.IObservable`*
+System.IObserver`*
 
 System.Nullable`*
 
@@ -188,6 +190,7 @@ System.Reflection.IReflect
 System.Reflection.MemberInfo
 System.Reflection.FieldInfo
 System.Reflection.EventInfo
+System.Reflection.ParameterAttributes
 System.Reflection.ParameterInfo
 System.Reflection.PropertyInfo
 System.Reflection.MethodInfo

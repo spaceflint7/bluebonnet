@@ -141,14 +141,17 @@ namespace system
             try
             {
                 // TODO: check if begins with NumberFormatInfo.Positive/NegativeSign
-                result = java.lang.Integer.parseInt(s.Trim());
-                return true;
+                if (s != null)
+                {
+                    result = java.lang.Integer.parseInt(s.Trim());
+                    return true;
+                }
             }
             catch (java.lang.NumberFormatException)
             {
-                result = 0;
-                return false;
             }
+            result = 0;
+            return false;
         }
 
 

@@ -186,6 +186,7 @@ namespace SpaceFlint.CilToJava
                        .Replace(']',  '\uFF3D')   // U+FF3D Fullwidth Right Square Bracket
                        .Replace('`',  '\uFF40')   // U+FF40 Fullwidth Grave Accent
                        .Replace('~',  '\uFF5E')   // U+FF40 Fullwidth Tilde
+                       .Replace(' ',  '\uFFE2')   // U+FFE2 Fullwidth Not Sign
                        ;
         }
 

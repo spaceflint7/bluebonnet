@@ -33,7 +33,6 @@ namespace system
             {
                 DelegateUtil.CopyBoxed(fromObj, toObj);
             }
-
         }
 
 
@@ -161,8 +160,22 @@ namespace system
                 proxy = genericObject.TryCast(castToType);
             else
                 proxy = Array.GetProxy(obj, castToType, true);
+
             if (proxy == null)
+            {
+                if (    (obj != null) && (! castToType.IsGenericType)
+                     && castToType is RuntimeType castToRuntimeType
+                     && castToRuntimeType.JavaClassForArray()
+                                .isAssignableFrom(((java.lang.Object) obj).getClass()))
+                {
+                    // target type is not generic, but the object can be cast to
+                    // it. this happens when both object and target type are one
+                    // of the  non-generic interfaces implemented by Array.
+                    // see also IsArray() in GenericUtil::ShouldCallGenericCast.
+                    return obj;
+                }
                 ThrowInvalidCastException(obj, castToType);
+            }
             return proxy;
         }
 

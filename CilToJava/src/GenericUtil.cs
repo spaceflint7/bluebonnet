@@ -136,6 +136,11 @@ namespace SpaceFlint.CilToJava
                     if (code.MaxStack < 1)
                         code.MaxStack = 1;
 
+                    // we are injecting a call to super constructor at the very top,
+                    // so local 0 should have the proper type, not uninitializedThis
+                    code.StackMap.SetLocalInAllFrames(
+                        0, CilType.From(new JavaType(0, 0, dataClass.Name)), null);
+
                     insertReturn = false;
                 }
 

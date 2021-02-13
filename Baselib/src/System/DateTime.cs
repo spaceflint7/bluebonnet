@@ -25,6 +25,8 @@ namespace system
         // number of days between 1/1/0001 and 1/1/10000 is 3,652,059
         const long MaxTicks = 3652059 * TicksPerDay - 1;
 
+        public static readonly DateTime MaxValue = new DateTime(MaxTicks, DateTimeKind.Unspecified);
+
         //
         // Constructors (Now)
         //

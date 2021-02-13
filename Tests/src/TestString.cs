@@ -16,6 +16,7 @@ namespace Tests
             TestCompare();
             TestCast("Test");
             TestEncoding();
+            TestNumber();
         }
 
 
@@ -242,6 +243,15 @@ namespace Tests
             foreach (var b in aBytes) Console.Write($"  {((int)b):X2} ");
             string bString = System.Text.Encoding.ASCII.GetString(aBytes);
             Console.WriteLine(string.CompareOrdinal(aString, bString));
+        }
+
+
+
+        void TestNumber()
+        {
+            int x = 1;
+            var y = 33333.030303;
+            Console.WriteLine($"[{x:D3}] [{y:N0}]");
         }
 
     }

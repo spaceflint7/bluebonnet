@@ -881,63 +881,56 @@ namespace system
         {
             ThrowIfNull(array);
             if (index < 0 || length < 0)
-                throw new System.ArgumentOutOfRangeException();
-            if (array.len - index < length)
-                throw new System.ArgumentException();
+                throw new System.IndexOutOfRangeException();
+            var endIndex = index + length;
+            if (endIndex > array.len)
+                throw new System.IndexOutOfRangeException();
 
             switch (array.arr)
             {
                 case bool[] boolArray:
-                    for (; length-- > 0; index++)
-                        boolArray[index] = default(bool);
+                    java.util.Arrays.fill(boolArray, index, endIndex, false);
                     break;
 
                 case sbyte[] byteArray:
-                    for (; length-- > 0; index++)
-                        byteArray[index] = default(sbyte);
+                    java.util.Arrays.fill(byteArray, index, endIndex, (sbyte) 0);
                     break;
 
                 case char[] charArray:
-                    for (; length-- > 0; index++)
-                        charArray[index] = default(char);
+                    java.util.Arrays.fill(charArray, index, endIndex, (char) 0);
                     break;
 
                 case short[] shortArray:
-                    for (; length-- > 0; index++)
-                        shortArray[index] = default(short);
+                    java.util.Arrays.fill(shortArray, index, endIndex, (short) 0);
                     break;
 
                 case int[] intArray:
-                    for (; length-- > 0; index++)
-                        intArray[index] = default(int);
+                    java.util.Arrays.fill(intArray, index, endIndex, (int) 0);
                     break;
 
                 case long[] longArray:
-                    for (; length-- > 0; index++)
-                        longArray[index] = default(long);
+                    java.util.Arrays.fill(longArray, index, endIndex, (long) 0);
                     break;
 
                 case float[] floatArray:
-                    for (; length-- > 0; index++)
-                        floatArray[index] = default(float);
+                    java.util.Arrays.fill(floatArray, index, endIndex, (float) 0);
                     break;
 
                 case double[] doubleArray:
-                    for (; length-- > 0; index++)
-                        doubleArray[index] = default(double);
+                    java.util.Arrays.fill(doubleArray, index, endIndex, (double) 0);
                     break;
 
                 case object[] objectArray:
                     if (system.RuntimeType.IsValueClass(
-                            ((java.lang.Object) array.arr).getClass().getComponentType()))
+                                    ((java.lang.Object) (object) objectArray)
+                                                .getClass().getComponentType()))
                     {
                         for (; length-- > 0; index++)
                             ((ValueMethod) (ValueType) objectArray[index]).Clear();
                     }
                     else
                     {
-                        for (; length-- > 0; index++)
-                            objectArray[index] = null;
+                        java.util.Arrays.fill(objectArray, index, endIndex, null);
                     }
                     break;
 
@@ -945,6 +938,86 @@ namespace system
                     throw new System.InvalidOperationException();
             }
         }
+
+        //
+        // Fill
+        //
+
+        public static void Fill<T>(T[] array, T value)
+        {
+            ThrowIfNull(array);
+            FillCommon(array, (object) value, 0, java.lang.reflect.Array.getLength(array));
+        }
+
+        public static void Fill<T>(T[] array, T value, int startIndex, int count)
+        {
+            ThrowIfNull(array);
+            if (startIndex < 0 || count < 0)
+                throw new System.IndexOutOfRangeException();
+            var endIndex = startIndex + count;
+            if (endIndex > java.lang.reflect.Array.getLength(array))
+                throw new System.IndexOutOfRangeException();
+            FillCommon(array, (object) value, startIndex, endIndex);
+        }
+
+        private static void FillCommon(object array, object value, int startIndex, int endIndex)
+        {
+            switch (array)
+            {
+                case bool[] boolArray:
+                    java.util.Arrays.fill(boolArray, startIndex, endIndex, (bool) value);
+                    break;
+
+                case sbyte[] byteArray:
+                    java.util.Arrays.fill(byteArray, startIndex, endIndex, (sbyte) value);
+                    break;
+
+                case char[] charArray:
+                    java.util.Arrays.fill(charArray, startIndex, endIndex, (char) value);
+                    break;
+
+                case short[] shortArray:
+                    java.util.Arrays.fill(shortArray, startIndex, endIndex, (short) value);
+                    break;
+
+                case int[] intArray:
+                    java.util.Arrays.fill(intArray, startIndex, endIndex, (int) value);
+                    break;
+
+                case long[] longArray:
+                    java.util.Arrays.fill(longArray, startIndex, endIndex, (long) value);
+                    break;
+
+                case float[] floatArray:
+                    java.util.Arrays.fill(floatArray, startIndex, endIndex, (float) value);
+                    break;
+
+                case double[] doubleArray:
+                    java.util.Arrays.fill(doubleArray, startIndex, endIndex, (double) value);
+                    break;
+
+                case object[] objectArray:
+                    if (system.RuntimeType.IsValueClass(
+                            ((java.lang.Object) array).getClass().getComponentType()))
+                    {
+                        ValueType v = (ValueType) value;
+                        for (; startIndex < endIndex; startIndex++)
+                            ((ValueMethod) v).CopyTo((ValueType) objectArray[startIndex]);
+                    }
+                    else
+                    {
+                        java.util.Arrays.fill(objectArray, startIndex, endIndex, value);
+                    }
+                    break;
+
+                default:
+                    throw new System.InvalidOperationException();
+            }
+        }
+
+        //
+        // Initialize
+        //
 
         public void Initialize()
         {

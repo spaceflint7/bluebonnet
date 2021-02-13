@@ -811,7 +811,7 @@ namespace SpaceFlint.CilToJava
                 var thisRef = stackMap.PopStack(CilMain.Where);
                 if (updateThis && thisRef.Equals(JavaStackMap.UninitializedThis))
                 {
-                    // an 'uninitializedthis' first argument is updated in
+                    // an 'uninitializedThis' first argument is updated in
                     // the stack frame after calling the super constructor
                     locals.UpdateThis(method.DeclType);
                 }
