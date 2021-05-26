@@ -10,6 +10,10 @@
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
   </PropertyGroup>
   <Import Project="..\Solution.project" />
+  <PropertyGroup>
+    <!-- keep the following line below the import of Solution.project -->
+    <DebugType>None</DebugType>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="Cmdline.fs" />
     <Compile Include="Program.fs" />
@@ -24,5 +28,11 @@
       <HintPath>..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="System.IO.Compression" />
+    <PackageReference Include="ILMerge" Version="3.0.29" />
   </ItemGroup>
+  <!-- use ILMerge to combine everything into PruneMerge.exe in the main output directory -->
+  <Import Project="..\packages\ILMerge.3.0.29\build\ILMerge.props" />
+  <Target Name="ILMerge" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="$(ILMergeConsolePath) /ndebug /out:$(ObjDir)$(AssemblyName).exe $(OutputPath)$(AssemblyName).exe $(OutputPath)JavaBinary.dll $(OutputPath)FSharp.Core.dll" />
+  </Target>
 </Project>

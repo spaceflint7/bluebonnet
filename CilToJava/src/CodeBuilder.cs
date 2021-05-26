@@ -276,7 +276,7 @@ namespace SpaceFlint.CilToJava
                 case Code.Ldc_I8:   case Code.Ldc_R4:   case Code.Ldc_R8:
                 case Code.Ldstr:    case Code.Ldnull:
 
-                    LoadConstant(cilOp, cilInst.Operand);
+                    LoadConstant(cilOp, cilInst);
                     break;
 
                 case Code.Ldfld:    case Code.Ldflda:   case Code.Stfld:
@@ -363,7 +363,7 @@ namespace SpaceFlint.CilToJava
                 case Code.Conv_U:   case Code.Conv_Ovf_U:   case Code.Conv_Ovf_U_Un:
                 case Code.Conv_R4:  case Code.Conv_R8:      case Code.Conv_R_Un:
 
-                    CodeNumber.Conversion(code, cilOp);
+                    CodeNumber.Conversion(code, cilOp, cilInst);
                     break;
 
                 case Code.Add:      case Code.Sub:      case Code.Mul:      case Code.Neg:
@@ -374,7 +374,7 @@ namespace SpaceFlint.CilToJava
                 case Code.Sub_Ovf:                      case Code.Sub_Ovf_Un:
                 case Code.Mul_Ovf:                      case Code.Mul_Ovf_Un:
 
-                    CodeNumber.Calculation(code, cilOp);
+                    CodeNumber.Calculation(code, cilOp, cilInst);
                     break;
 
                 case Code.Ldind_I1: case Code.Ldind_U1: case Code.Ldind_I2: case Code.Ldind_U2:

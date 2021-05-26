@@ -2,6 +2,8 @@
 
 This is an initial release of a partial implementation of the .NET platform on top of the Java Virtual Machine, and compatible with Android runtime.  The **Bluebonnet** bytecode compiler translates .NET [CIL](https://en.wikipedia.org/wiki/Common_Intermediate_Language) into [Java bytecode](https://en.wikipedia.org/wiki/Java_bytecode) in Java classes, and additional run-time support is provided by the **Baselib** library.
 
+https://www.spaceflint.com/bluebonnet
+
 ## Highlights
 
 - 100% Java 8 bytecode with no native code.
@@ -58,7 +60,7 @@ There are some additional demos:
     - Note that the Android demos require the `ANDROID_HOME` environment directory, and the project is hard-coded to use Android platform version 28, and build-tools 30.0.2
     - Note also that the Android demos build an APK file, but do not install it.
 
-See the [BNA](https://github.com/spaceflint7/bna) repository for another demo for Android.
+See the [BNA](https://github.com/spaceflint7/bna) and [Unjum](https://github.com/spaceflint7/unjum) repositories for more demos for Android.
 
 ## Usage
 

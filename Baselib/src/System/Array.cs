@@ -130,18 +130,14 @@ namespace system
                           destinationArray, destinationIndex,
                           length);
 
-            var srcArr = sourceArray.arr;
-            var dstArr = destinationArray.arr;
-            var elemType = ((java.lang.Object) srcArr).getClass().getComponentType();
-            if (elemType != ((java.lang.Object) dstArr).getClass().getComponentType())
-                throw new System.ArrayTypeMismatchException();
+            var destinationArray_arr = destinationArray.arr;
 
-            object copy = Clone(destinationArray.arr, destinationArray.len);
+            object copy = Clone(destinationArray_arr, destinationArray.len);
             try
             {
-                CopyInternal(srcArr, sourceIndex,
-                             dstArr, destinationIndex,
-                             elemType, length);
+                CopyInternal(sourceArray.arr, sourceIndex,
+                             destinationArray_arr, destinationIndex,
+                             length);
                 copy = null;
             }
             finally
@@ -149,8 +145,8 @@ namespace system
                 if (copy != null)
                 {
                     CopyInternal(copy, sourceIndex,
-                                 dstArr, destinationIndex,
-                                 elemType, length);
+                                 destinationArray_arr, destinationIndex,
+                                 length);
                 }
             }
         }
@@ -200,22 +196,25 @@ namespace system
                           destinationArray, destinationIndex,
                           length);
 
-            var srcArr = sourceArray.arr;
-            var dstArr = destinationArray.arr;
-            var elemType = ((java.lang.Object) srcArr).getClass().getComponentType();
-            if (elemType != ((java.lang.Object) dstArr).getClass().getComponentType())
-                throw new System.ArrayTypeMismatchException();
-
-            CopyInternal(srcArr, sourceIndex,
-                         dstArr, destinationIndex,
-                         elemType, length);
+            CopyInternal(sourceArray.arr, sourceIndex,
+                         destinationArray.arr, destinationIndex,
+                         length);
         }
 
         private static void CopyInternal(object srcArr, int srcIndex,
                                          object dstArr, int dstIndex,
-                                         java.lang.Class elemType, int length)
+                                         int length)
         {
-            if (system.RuntimeType.IsValueClass(elemType))
+            var srcElemType = ((java.lang.Object) srcArr).getClass().getComponentType();
+            var dstElemType = ((java.lang.Object) dstArr).getClass().getComponentType();
+            if (! dstElemType.isAssignableFrom(srcElemType))
+                throw new System.ArrayTypeMismatchException();
+
+            bool isValueType = system.RuntimeType.IsValueClass(srcElemType);
+            if (isValueType != system.RuntimeType.IsValueClass(dstElemType))
+                throw new System.ArrayTypeMismatchException();
+
+            if (isValueType)
             {
                 ValueType srcObj, dstObj;
                 if (    object.ReferenceEquals(srcArr, dstArr)

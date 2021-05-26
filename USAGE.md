@@ -46,6 +46,30 @@ Java functional interfaces are supported via an artificial delegate, for example
 
 In this example, `java.lang.Thread.UncaughtExceptionHandler` is the functional interface, which gets an artificial delegate named `Delegate` as a nested type.  The C# lambda is cast to this delegate, and then the `AsInterface` method is invoked, to convert the delegate to a Java interface.
 
+# Attributes
+
+Bluebonnet recognizes the following attributes:
+
+- `[java.attr.DiscardAttribute]` on a top-level type (class/struct/interface/delegate) to exclude the type from output.  For example, [Baselib/`Object.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/Object.cs) declares a `java.lang.Object` type with a `getClass` method, but there is no need to actually emit a Java class for `java.lang.Object`.  For an example of this outside of Baselib, see [BNA/`Import.cs`](https://github.com/spaceflint7/bna/blob/master/BNA/src/Import.cs).
+
+- `[java.attr.RetainTypeAttribute]` on a field data member indicates not to box the field.  This is useful for fields that participate in a code hot path, as it eliminates double-references when accessing the field.  It should not be used with fields which may be referenced directly from code outside their containing assembly.
+
+- `[java.attr.AsInterfaceAttribute]` on a class causes it to be written in output as an interface.  This allows the creation of default method implementations even with versions of C# that do not support this feature.  See for example [Baselib/`IDisposable.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/IDisposable.cs).
+
+- `[java.attr.RetainNameAttribute]` on a type or method indicates that renaming should be inhibited.  For example, an interface method would be renamed to "<interfaceName><methodName>", to allow a class to implement multiple interfaces.  However, this is not appropriate for implementing a Java interface whose methods already have a pre-set method name.  See for example [Baselib/`IDisposable.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/IDisposable.cs).
+
+These attributes are emitted when Bluebonnet exports Java declarations to a .NET assembly, so they are available when such an assembly is referenced during compilation.
+
+# Performance Considerations
+
+For code that runs in a hot path, consider looking at the generated Java byte code to make sure there are no performance issues.  Things to consider:
+
+- Fields of a reference type are generally held in a double-reference, to permit taking their reference.  If such a field is used in a hot path, consider applying the `RetainType` attribute (see above).
+
+- Boxing a primitive or a reference type (as either a field or an array element) is a relatively expensive operation which allocates a wrapper object.  For example, `a[i] += 2;` generates code that takes the address of an array element.  To generate code which is less expensive when translated to Java, it could be re-written as `var v = a[i] + 2; a[i] = v;`
+
+Note that running Bluebonnet with a single argument that points to a Java archive will print a disassembly of the classes and methods within the archive.
+
 # Inexact Implementation
 
 Here are some known differences, deficiencies and incompatibilities of the Bluebonnet .NET implementation, compared to a proper .NET implementation, in no particular order.

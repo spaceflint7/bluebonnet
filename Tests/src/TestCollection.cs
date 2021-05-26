@@ -25,6 +25,7 @@ namespace Tests
             TestSet();
             TestStack();
             TestHash();
+            TestArrayList();
         }
 
 
@@ -138,6 +139,22 @@ namespace Tests
             foreach (var key in dict.Keys)
                 sum += (int) dict[key];
             Console.WriteLine(sum);
+        }
+
+
+        private class ListElement
+        {
+            [java.attr.RetainType] public int v1;
+            [java.attr.RetainType] public int v2;
+        }
+
+        public void TestArrayList()
+        {
+            var list = new System.Collections.ArrayList(
+                new ListElement[] {
+                    new ListElement { v1 = 1, v2 = 2 }
+                });
+            foreach (var e in list) System.Console.WriteLine(e);
         }
 
     }

@@ -36,7 +36,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        void LoadConstant(Code op, object data)
+        void LoadConstant(Code op, Mono.Cecil.Cil.Instruction inst)
         {
             JavaType pushType;
             object pushValue;
@@ -50,6 +50,7 @@ namespace SpaceFlint.CilToJava
             }
             else
             {
+                var data = inst.Operand;
                 pushOpcode = 0x12; // ldc
 
                 if (data is string stringVal) // Code.Ldstr
@@ -72,6 +73,13 @@ namespace SpaceFlint.CilToJava
                     pushValue = longVal;
                     pushType = JavaType.LongType;
                 }
+                else if (IsAndBeforeShift(inst, code))
+                {
+                    // jvm shift instructions mask the shift count, so
+                    // eliminate AND-ing with 31 and 63 prior to a shift
+                    code.NewInstruction(0x00 /* nop */, null, null);
+                    return;
+                }
                 else
                 {
                     pushType = JavaType.IntegerType;
@@ -92,6 +100,58 @@ namespace SpaceFlint.CilToJava
 
             code.NewInstruction(pushOpcode, null, pushValue);
             stackMap.PushStack(CilType.From(pushType));
+        }
+
+
+
+        public static int? IsLoadConstant(Mono.Cecil.Cil.Instruction inst)
+        {
+            if (inst != null)
+            {
+                var op = inst.OpCode.Code;
+                var data = inst.Operand;
+                if (op == Code.Ldc_I4 && data is int intVal)
+                    return intVal;
+                if (op == Code.Ldc_I4_S && data is sbyte sbyteVal)
+                    return sbyteVal;
+            }
+            return null;
+        }
+
+
+
+        public static bool IsAndBeforeShift(Mono.Cecil.Cil.Instruction inst, JavaCode code)
+        {
+            // jvm shift instructions mask the shift count, so
+            // eliminate AND-ing with 31 and 63 prior to a shift.
+
+            // the input inst should point to the first of three
+            // instructions, and here we check if the sequence is:
+            // ldc_i4 31 or 63; and; shift
+
+            // used by LoadConstant (see above), CodeNumber::Calculation
+
+            var next1 = inst.Next;
+            if (next1 != null && next1.OpCode.Code == Code.And)
+            {
+                var next2 = next1.Next;
+                if (next2 != null && (    next2.OpCode.Code == Code.Shl
+                                       || next2.OpCode.Code == Code.Shr
+                                       || next2.OpCode.Code == Code.Shr_Un))
+                {
+                    var stackArray = code.StackMap.StackArray();
+                    if (    stackArray.Length >= 2
+                         && IsLoadConstant(inst) is int shiftMask
+                         && (   (    shiftMask == 31
+                                  && stackArray[0].Equals(JavaType.IntegerType))
+                             || (    shiftMask == 63
+                                  && stackArray[0].Equals(JavaType.LongType))))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
 

@@ -204,7 +204,7 @@ namespace SpaceFlint.CilToJava
                     var length = stackMap.PopStack(CilMain.Where);
                     stackMap.PushStack(length);
                     if (length.Equals(JavaType.LongType))
-                        CodeNumber.Conversion(code, Code.Conv_Ovf_I4);
+                        CodeNumber.Conversion(code, Code.Conv_Ovf_I4, null);
                 }
 
                 code.NewInstruction(0xBC /* newarray */, null, elemType.NewArrayType);
@@ -311,10 +311,18 @@ namespace SpaceFlint.CilToJava
                 if (elemType.PrimitiveType == TypeCode.Byte)
                 {
                     // unsigned byte result should be truncated to 8-bits
-                    stackMap.PushStack(JavaType.IntegerType);
-                    code.NewInstruction(0x12 /* ldc */, null, (int) 0xFF);
-                    code.NewInstruction(0x7E /* iand */, null, null);
-                    stackMap.PopStack(CilMain.Where);
+                    // (unless already followed by "ldc.i4 255 ; and")
+                    bool followedByAndWith255 =
+                            CodeBuilder.IsLoadConstant(inst.Next) == 0xFF
+                         && inst.Next.Next?.OpCode.Code == Code.And;
+
+                    if (! followedByAndWith255)
+                    {
+                        stackMap.PushStack(JavaType.IntegerType);
+                        code.NewInstruction(0x12 /* ldc */, null, (int) 0xFF);
+                        code.NewInstruction(0x7E /* iand */, null, null);
+                        stackMap.PopStack(CilMain.Where);
+                    }
                 }
 
                 if (arrayType.IsValueClass || elemType.IsValueClass)
@@ -405,8 +413,29 @@ namespace SpaceFlint.CilToJava
                     // stelem.i2 with a char[] array, should be 'castore' not 'sastore'
                     elemType = arrayType.AdjustRank(-arrayType.ArrayRank);
                 }
+                else
+                {
+                    // Android AOT crashes the compilation if an immediate value
+                    // is stored into a byte or short array, and the value does
+                    // not fit within the range -128..127 or -32768..32767.
+                    // simply checing if the previous instruction loaded the
+                    // constant is not enough, because due to method inlining
+                    // by the Android ART JIT, the immediate value might actually
+                    // originate in a calling method.
+                    // so we always force the value into range using i2b/i2s.
+                    // see also: CodeNumber::ConvertToInteger
 
-                CheckImmediate(arrayType.PrimitiveType, inst);
+                    if (     arrayType.PrimitiveType == TypeCode.Boolean
+                          || arrayType.PrimitiveType == TypeCode.SByte
+                          || arrayType.PrimitiveType == TypeCode.Byte)
+                    {
+                        code.NewInstruction(0x91 /* i2b */, null, null);
+                    }
+                    else if (    arrayType.PrimitiveType == TypeCode.Int16)
+                    {
+                        code.NewInstruction(0x93 /* i2s */, null, null);
+                    }
+                }
 
                 if (arrayType.IsValueClass || elemType.IsValueClass)
                 {
@@ -414,32 +443,6 @@ namespace SpaceFlint.CilToJava
                 }
 
                 code.NewInstruction(elemType.StoreArrayOpcode, null, null);
-            }
-
-
-            void CheckImmediate(TypeCode arrayPrimitiveType, Mono.Cecil.Cil.Instruction inst)
-            {
-                // Android AOT aborts the compilation with a crash if storing
-                // an immediate value that does not fit in the target array.
-                if (    inst != null && inst.Previous != null
-                     && inst.Previous.OpCode.Code == Code.Ldc_I4)
-                {
-                    var imm = (int) inst.Previous.Operand;
-                    if (     arrayType.PrimitiveType == TypeCode.Boolean
-                          || arrayType.PrimitiveType == TypeCode.SByte
-                          || arrayType.PrimitiveType == TypeCode.Byte)
-                    {
-                        if (imm < -128 || imm >= 128)
-                            code.NewInstruction(0x91 /* i2b */, null, null);
-                    }
-                    else if (    arrayType.PrimitiveType == TypeCode.Char
-                              || arrayType.PrimitiveType == TypeCode.Int16
-                              || arrayType.PrimitiveType == TypeCode.UInt16)
-                    {
-                        if (imm < -32768 || imm >= 32768)
-                            code.NewInstruction(0x93 /* i2s */, null, null);
-                    }
-                }
             }
         }
 

@@ -65,6 +65,7 @@ System.Nullable`*
 System.SystemException
 System.OverflowException
 
+System.Collections.ArrayList
 System.Collections.BitArray
 System.Collections.Comparer
 System.Collections.DictionaryEntry

@@ -10,7 +10,8 @@ namespace SpaceFlint.CilToJava
     public static class CodeNumber
     {
 
-        public static void Conversion(JavaCode code, Code cilOp)
+        public static void Conversion(JavaCode code, Code cilOp,
+                                      Mono.Cecil.Cil.Instruction cilInst)
         {
             var oldType = (CilType) code.StackMap.PopStack(CilMain.Where);
             var (newType, overflow, unsigned) = ConvertOpCodeToTypeCode(cilOp);
@@ -32,7 +33,10 @@ namespace SpaceFlint.CilToJava
                 op = ConvertToLong(code, oldType.PrimitiveType, newType);
 
             else
-                op = ConvertToInteger(code, oldType.PrimitiveType, newType);
+            {
+                var opNext = cilInst.Next?.OpCode.Code ?? 0;
+                op = ConvertToInteger(code, oldType.PrimitiveType, newType, opNext);
+            }
 
             if (op != -1)
                 code.NewInstruction((byte) op, null, null);
@@ -82,7 +86,7 @@ namespace SpaceFlint.CilToJava
                 return -1; // no output
             }
 
-            else if (! unsigned) // && (newType == TypeCode.Double)
+            else if (! unsigned)
             {
                 //
                 // convert to double
@@ -184,7 +188,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static int ConvertToInteger(JavaCode code, TypeCode oldType, TypeCode newType)
+        static int ConvertToInteger(JavaCode code, TypeCode oldType, TypeCode newType, Code opNext)
         {
             if (oldType == TypeCode.Double)
             {
@@ -208,10 +212,23 @@ namespace SpaceFlint.CilToJava
             }
 
             if (newType == TypeCode.SByte)
+            {
+                // Stelem_I1 inserts 'i2b' (see CodeArrays::Store)
+                if (opNext == Code.Stelem_I1)
+                    return 0x00; // nop
+
                 return 0x91; // i2b
+            }
 
             if (newType == TypeCode.Byte)
             {
+                if (opNext == Code.Stelem_I1)
+                {
+                    // if the next instruction is Stelem.I1, which inserts 'i2b'
+                    // (see CodeArrays::Store), then skip the masking below
+                    return 0x00; // nop
+                }
+
                 code.StackMap.PushStack(JavaType.IntegerType);
                 code.NewInstruction(0x12 /* ldc */, null, (int) 0xFF);
                 code.StackMap.PushStack(JavaType.IntegerType);
@@ -221,7 +238,16 @@ namespace SpaceFlint.CilToJava
             }
 
             if (newType == TypeCode.Int16)
+            {
+                if (opNext == Code.Stelem_I2)
+                {
+                    // the next instruction is Stelem.I2, which inserts 'i2s'
+                    // (see CodeArrays::Store)
+                    return 0x00; // nop
+                }
+
                 return 0x93; // i2s
+            }
 
             if (newType == TypeCode.UInt16)
                 return 0x92; // i2c
@@ -333,8 +359,18 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public static void Calculation(JavaCode code, Code cilOp)
+        public static void Calculation(JavaCode code, Code cilOp,
+                                       Mono.Cecil.Cil.Instruction cilInst)
         {
+            if (    cilOp == Code.And
+                 && CodeBuilder.IsAndBeforeShift(cilInst.Previous, code))
+            {
+                // jvm shift instructions mask the shift count, so
+                // eliminate AND-ing with 31 and 63 prior to a shift
+                code.NewInstruction(0x00 /* nop */, null, null);
+                return;
+            }
+
             var stackTop1 = code.StackMap.PopStack(CilMain.Where);
             if (cilOp == Code.Sub && CodeSpan.SubOffset(stackTop1, code))
                 return;
