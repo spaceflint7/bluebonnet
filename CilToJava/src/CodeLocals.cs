@@ -635,8 +635,10 @@ namespace SpaceFlint.CilToJava
         public (CilType, int) GetLocalFromLoadInst(Code op, object data)
         {
             int localIndex;
-            if (op >= Code.Ldloc_0 && op <= Code.Ldloc_3)
+            if      (op >= Code.Ldloc_0 && op <= Code.Ldloc_3)
                 localIndex = VariableIndex(op - Code.Ldloc_0);
+            else if (op >= Code.Ldarg_0 && op <= Code.Ldarg_3)
+                localIndex = ArgumentIndex(op - Code.Ldarg_0);
             else if (data is ParameterDefinition dataArg)
                 localIndex = ArgumentIndex(dataArg.Sequence);
             else if (data is VariableDefinition dataVar)

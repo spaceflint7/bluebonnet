@@ -708,13 +708,21 @@ namespace SpaceFlint.CilToJava
 
 
 
+        static Dictionary<MethodReference, MethodDefinition> _MethodDefs =
+                                new Dictionary<MethodReference, MethodDefinition>();
+
         internal static MethodDefinition AsDefinition(MethodReference _ref)
         {
             if (_ref.IsDefinition)
                 return _ref as MethodDefinition;
-            var def = _ref.Resolve();
-            if (def != null)
+            if (_MethodDefs.TryGetValue(_ref, out var def))
                 return def;
+            def = _ref.Resolve();
+            if (def != null)
+            {
+                _MethodDefs.Add(_ref, def);
+                return def;
+            }
             throw CilMain.Where.Exception(
                             $"could not resolve method '{_ref.Name}' from assembly '{_ref.DeclaringType.Scope}'");
         }

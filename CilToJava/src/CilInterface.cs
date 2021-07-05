@@ -320,11 +320,15 @@ namespace SpaceFlint.CilToJava
 
         public static List<CilInterfaceMethod> CollectAll(TypeDefinition fromType)
         {
-            var list = new List<CilInterfaceMethod>();
-            Process(fromType, list);
-            return list;
+            var map = new Dictionary<string, List<CilInterfaceMethod>>();
+            Process(fromType, map);
 
-            void Process(TypeDefinition fromType, List<CilInterfaceMethod> list)
+            var newList = new List<CilInterfaceMethod>();
+            foreach (var oldList in map.Values)
+                newList.AddRange(oldList);
+            return newList;
+
+            void Process(TypeDefinition fromType, Dictionary<string, List<CilInterfaceMethod>> map)
             {
                 foreach (var fromMethod in fromType.Methods)
                 {
@@ -343,19 +347,26 @@ namespace SpaceFlint.CilToJava
 
                         var outputMethod = new CilInterfaceMethod(inputMethod);
 
-                        bool dup = false;
-                        foreach (var oldMethod in list)
+                        if (map.TryGetValue(inputMethod.Name, out var list))
                         {
-                            if (    oldMethod.Method.Name == outputMethod.Method.Name
-                                 && oldMethod.EqualParameters(outputMethod))
+                            bool dup = false;
+                            foreach (var oldMethod in list)
                             {
-                                dup = true;
-                                break;
+                                if (oldMethod.EqualParameters(outputMethod))
+                                {
+                                    dup = true;
+                                    break;
+                                }
                             }
+                            if (! dup)
+                                list.Add(outputMethod);
                         }
-
-                        if (! dup)
-                            list.Add(outputMethod);
+                        else
+                        {
+                            var list2 = new List<CilInterfaceMethod>();
+                            list2.Add(outputMethod);
+                            map.Add(inputMethod.Name, list2);
+                        }
 
                         CilMain.GenericStack.Release(genericMark);
                     }
@@ -369,7 +380,7 @@ namespace SpaceFlint.CilToJava
                     var genericMark = CilMain.GenericStack.Mark();
                     CilMain.GenericStack.EnterType(fromBaseTypeDef);
 
-                    Process(fromBaseTypeDef, list);
+                    Process(fromBaseTypeDef, map);
 
                     CilMain.GenericStack.Release(genericMark);
                 }

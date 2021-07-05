@@ -525,6 +525,22 @@ namespace SpaceFlint.CilToJava
 
         int SaveMethodArguments(CilMethod callMethod)
         {
+            // pop method arguments off the stack and into temporary locals.
+            // this is needed when we need to manipulate the object reference,
+            // which was pushed before the arguments, in some way.  for example,
+            //
+            // .Net has a 'newobj' which allocates the object and then calls the
+            // constructor, but we have to pop all arguments, insert a jvm 'new'
+            // instruction, then push arguments before the call to constructor.
+            //
+            // another example is a virtual call which must manipulate the pushed
+            // object reference in some way.  see calls to this method throughout
+            // this source file for details.
+            //
+            // this creates noise of 'load'/'store' instructions in the generated
+            // code.  but disassembly using 'dexdump' shows that the Android 'D8'
+            // compiler generally optimizes all of this away.
+
             int localIndex = -1;
             int i = callMethod.Parameters.Count - (callMethod.HasDummyClassArg ? 1 : 0);
             while (i-- > 0)
@@ -564,6 +580,8 @@ namespace SpaceFlint.CilToJava
 
         void LoadMethodArguments(CilMethod callMethod, int localIndex)
         {
+            // push methods arguments, saved by SaveMethodArguments.
+
             int i = callMethod.Parameters.Count - (callMethod.HasDummyClassArg ? 1 : 0);
             while (i-- > 0)
             {

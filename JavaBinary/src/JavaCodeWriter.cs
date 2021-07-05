@@ -12,6 +12,7 @@ namespace SpaceFlint.JavaBinary
         {
             wtr.Where.Push("method body");
 
+            PerformOptimizations();
             EliminateNops();
 
             int codeLength = FillInstructions(wtr);
@@ -615,6 +616,35 @@ namespace SpaceFlint.JavaBinary
             // four bytes:  with a wide prefix and two bytes for index
 
             return (index <= 3) ? 1 : ((index <= 255) ? 2 : 4);
+        }
+
+
+
+        void PerformOptimizations()
+        {
+            int n = Instructions.Count;
+            var prevInst = Instructions[0];
+            for (int i = 1; i < n; i++)
+            {
+                var currInst = Instructions[i];
+
+                // find occurrences of iconst_0 or iconst_1 followed by i2l
+                // (which must not be a branch target), and convert to lconst_xx
+
+                if (currInst.Opcode == 0x85 /* i2l */)
+                {
+                    if (    prevInst.Opcode == 0x12 /* ldc */
+                         && prevInst.Data is int intValue
+                         && (intValue == 0 || intValue == 1)
+                         && (! StackMap.HasBranchFrame(currInst.Label)))
+                    {
+                        // convert ldc of 0 or 1 into lconst_0 or lconst_1
+                        prevInst.Opcode = (byte) (intValue + 0x09);
+                        currInst.Opcode = 0x00; // nop
+                    }
+                }
+                prevInst = currInst;
+            }
         }
 
 

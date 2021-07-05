@@ -12,7 +12,7 @@ By default, all types/classes in the input are processed; one or more wildcard `
 
 If `input_file` is a Java archive, then the output written to `output_file` is a [reference assembly](https://docs.microsoft.com/en-us/dotnet/standard/assembly/reference-assemblies) declaring all types in the input.  For example,
 
-    Bluebonnet (java_home)\jre\lib\rt.jar .obj\Javalib.dll
+    Bluebonnet $JAVA_HOME\jre\lib\rt.jar .obj\Javalib.dll
 
 #### .NET Assembly to Java Code
 
@@ -56,7 +56,7 @@ Bluebonnet recognizes the following attributes:
 
 - `[java.attr.AsInterfaceAttribute]` on a class causes it to be written in output as an interface.  This allows the creation of default method implementations even with versions of C# that do not support this feature.  See for example [Baselib/`IDisposable.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/IDisposable.cs).
 
-- `[java.attr.RetainNameAttribute]` on a type or method indicates that renaming should be inhibited.  For example, an interface method would be renamed to "<interfaceName><methodName>", to allow a class to implement multiple interfaces.  However, this is not appropriate for implementing a Java interface whose methods already have a pre-set method name.  See for example [Baselib/`IDisposable.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/IDisposable.cs).
+- `[java.attr.RetainNameAttribute]` on a type or method indicates that renaming should be inhibited.  For example, an interface method would be renamed to the concatenation of interface name and method name, to allow a class to implement multiple interfaces.  However, this is not appropriate for implementing a Java interface whose methods already have a pre-set method name.  See for example [Baselib/`IDisposable.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/IDisposable.cs).
 
 These attributes are emitted when Bluebonnet exports Java declarations to a .NET assembly, so they are available when such an assembly is referenced during compilation.
 

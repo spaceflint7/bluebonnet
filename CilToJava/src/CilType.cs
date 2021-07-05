@@ -25,6 +25,10 @@ namespace SpaceFlint.CilToJava
         {
             if (! _Types.TryGetValue(fromType, out var converted))
             {
+                converted = GetCachedPrimitive(fromType);
+                if (converted != null)
+                    return converted;
+
                 CilMain.Where.Push($"type '{fromType.FullName}'");
 
                 converted = new CilType();
@@ -89,11 +93,12 @@ namespace SpaceFlint.CilToJava
             }
             else
             {
-                var metadataType = AsDefinition(fromType).MetadataType;
+                var defType = AsDefinition(fromType);
+                var metadataType = defType.MetadataType;
                 bool isValueType = (metadataType == MetadataType.ValueType);
                 if (isValueType || (metadataType == MetadataType.Class))
                 {
-                    ImportClass(fromType, isValueType);
+                    ImportClass(fromType, defType, isValueType);
                 }
                 else
                 {
@@ -143,11 +148,9 @@ namespace SpaceFlint.CilToJava
 
 
 
-        void ImportClass(TypeReference fromType, bool isValue)
+        void ImportClass(TypeReference fromType, TypeDefinition defType, bool isValue)
         {
             int numGeneric = ImportGenericParameters(fromType);
-
-            var defType = AsDefinition(fromType);
 
             if (defType.HasCustomAttribute(
                             "System.Runtime.Remoting.Contexts.SynchronizationAttribute", true))
@@ -226,9 +229,7 @@ namespace SpaceFlint.CilToJava
                     Flags |= INTERFACE;
 
                 else if (IsDelegateClass(defType))
-                {
                     Flags |= DELEGATE;
-                }
             }
 
             PrimitiveType = TypeCode.Empty;
@@ -434,7 +435,8 @@ namespace SpaceFlint.CilToJava
 
             for (int i = 0; i <= n; i++)
             {
-                if (SuperTypes[i].HasGenericParameters || SuperTypes[i].HasGenericSuperType)
+                //if (SuperTypes[i].HasGenericParameters || SuperTypes[i].HasGenericSuperType)
+                if (SuperTypes[i].IsGenericThisOrSuper)
                     Flags |= HAS_GEN_SUP;
             }
         }
@@ -607,19 +609,65 @@ namespace SpaceFlint.CilToJava
 
 
 
+        static Dictionary<TypeReference, TypeDefinition> _TypeDefs =
+                                new Dictionary<TypeReference, TypeDefinition>();
+
         internal static TypeDefinition AsDefinition(TypeReference _ref)
         {
             if (_ref.IsDefinition)
                 return _ref as TypeDefinition;
-            var def = _ref.Resolve();
-            if (def != null)
+            if (_TypeDefs.TryGetValue(_ref, out var def))
                 return def;
-            if (_ref.GetElementType() is GenericParameter)
-                return AsDefinition(_ref.Module.TypeSystem.Object);
+            def = _ref.Resolve();
+            if (def == null && _ref.GetElementType() is GenericParameter)
+                def = AsDefinition(_ref.Module.TypeSystem.Object);
+            if (def != null)
+            {
+                _TypeDefs.Add(_ref, def);
+                return def;
+            }
             throw CilMain.Where.Exception(
                         $"could not resolve type '{_ref}' from assembly '{_ref.Scope}'");
         }
 
+
+
+        static CilType[] _Primitives = new CilType[32];
+
+        private static CilType GetCachedPrimitive(TypeReference fromType)
+        {
+            var metadataType = fromType.MetadataType;
+            switch (metadataType)
+            {
+                case MetadataType.Void:
+                case MetadataType.Boolean:
+                case MetadataType.Char:
+                case MetadataType.SByte:
+                case MetadataType.Byte:
+                case MetadataType.Int16:
+                case MetadataType.UInt16:
+                case MetadataType.Int32:
+                case MetadataType.UInt32:
+                case MetadataType.Int64:
+                case MetadataType.UInt64:
+                case MetadataType.Single:
+                case MetadataType.Double:
+                case MetadataType.String:
+                case MetadataType.IntPtr:
+                case MetadataType.UIntPtr:
+                case MetadataType.Object:
+
+                    var resultType = _Primitives[(int) metadataType];
+                    if (resultType == null)
+                    {
+                        resultType = new CilType();
+                        resultType.Import(AsDefinition(fromType));
+                        _Primitives[(int) metadataType] = resultType;
+                    }
+                    return resultType;
+            }
+            return null;
+        }
 
 
         protected void SetBoxedFlags(bool clonedAtTop)

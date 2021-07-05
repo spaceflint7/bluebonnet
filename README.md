@@ -1,6 +1,6 @@
 # Bluebonnet
 
-This is an initial release of a partial implementation of the .NET platform on top of the Java Virtual Machine, and compatible with Android runtime.  The **Bluebonnet** bytecode compiler translates .NET [CIL](https://en.wikipedia.org/wiki/Common_Intermediate_Language) into [Java bytecode](https://en.wikipedia.org/wiki/Java_bytecode) in Java classes, and additional run-time support is provided by the **Baselib** library.
+This is a partial implementation of the .NET platform on top of the Java Virtual Machine, and compatible with Android runtime.  The **Bluebonnet** bytecode compiler translates .NET [CIL](https://en.wikipedia.org/wiki/Common_Intermediate_Language) into [Java bytecode](https://en.wikipedia.org/wiki/Java_bytecode) in Java classes, and additional run-time support is provided by the **Baselib** library.
 
 https://www.spaceflint.com/bluebonnet
 
@@ -12,16 +12,18 @@ https://www.spaceflint.com/bluebonnet
 - Simple interoperability with Java APIs.
 - Tested with C# and F# programs.
 
-## Requirements
+## Requirements for Building
 
 - Java 8 is required during building, to import Java classes from the `rt.jar` file.
     - Importing from Java 9 modules is not yet supported.
     - The translated code can run on Java 8 or later version.
     - Alternatively, `(ANDROID_HOME)/platforms/android-XX/android.jar` from Android SDK can be copied as `(JAVA_HOME)\jre\lib\rt.jar` file.
 - Android build tools with support for `D8`/`R8` desugaring.
-    - Tested with build tools version 30.0.2 and platform API version 28.
-- .NET Framework 4.7.2
-    - Tested only on Windows at this time.  Not thoroughly tested with .NET Core.
+    - Tested with build tools version 30.0.2 and platform API version 30.
+- .NET Framework (4.7 or later)
+    - Tested only on Windows at this time.  May not necessarily build with .NET Core.
+
+[Recent releases](https://github.com/spaceflint7/bluebonnet/releases) include a pre-built `Android.dll` reference assembly, created from the latest Android SDK, as well as all binaries needed for running Bluebonnet.  See the Usage section below.
 
 ## Building
 
@@ -64,4 +66,4 @@ See the [BNA](https://github.com/spaceflint7/bna) and [Unjum](https://github.com
 
 ## Usage
 
-For more information about using Bluebonnet, please see the [USAGE.md](USAGE.md) file.  That document also records any known differences and deficiencies, compared to a proper .NET implementation.
+For more information about using Bluebonnet, please see the [USAGE.md](USAGE.md) file.  That document also records any known differences and deficiencies, compared to a proper .NET implementation.  To use Bluebonnet in Android Studio, see [USAGE-ANDROID.md](USAGE-ANDROID.md).

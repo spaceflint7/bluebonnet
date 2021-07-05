@@ -631,11 +631,7 @@ namespace SpaceFlint.CilToJava
                 else if (! TestForBranch(code, castClass, cilInst.Next))
                 {
                     ushort nextLabel = (ushort) cilInst.Next.Offset;
-                    int localIndex = locals.GetTempIndex(stackTop);
-
-                    TestAndCast(code, castClass, stackTop, nextLabel, localIndex);
-
-                    locals.FreeTempIndex(localIndex);
+                    TestAndCast(code, castClass, stackTop, nextLabel, locals);
                 }
             }
             else
@@ -669,14 +665,41 @@ namespace SpaceFlint.CilToJava
             //
 
             void TestAndCast(JavaCode code, JavaType castClass, JavaType stackTop,
-                             ushort nextLabel, int localIndex)
+                             ushort nextLabel, CodeLocals locals)
             {
-                code.NewInstruction(stackTop.StoreOpcode, null, (int) localIndex);
+                int localIndex = -1;
+                if (cilInst?.Previous is Mono.Cecil.Cil.Instruction prevInst)
+                {
+                    (_, localIndex) = locals.GetLocalFromLoadInst(
+                                    prevInst.OpCode.Code, prevInst.Operand);
+                }
 
-                code.NewInstruction(0x01 /* aconst_null */, null, null);
+                bool usingTempIndex;
+                if (localIndex != -1)
+                {
+                    // in the common case, the the preceding instruction loads
+                    // a local or an argument with a known index number, so we
+                    // don't have a allocate a temporary local variable.  but
+                    // we will have to swap the values after pushing null
+                    usingTempIndex = false;
+
+                    code.NewInstruction(0x01 /* aconst_null */, null, null);
+                    code.NewInstruction(0x5F /* swap */, null, null);
+                }
+                else
+                {
+                    // otherwise we need to allocate a temporary variable, save
+                    // the top of stack into it, push null, and load the temp
+                    usingTempIndex = true;
+                    localIndex = locals.GetTempIndex(stackTop);
+
+                    code.NewInstruction(stackTop.StoreOpcode, null, localIndex);
+                    code.NewInstruction(0x01 /* aconst_null */, null, null);
+                    code.NewInstruction(stackTop.LoadOpcode, null, localIndex);
+                }
+
+                // the stack top has two values:  null and objref
                 code.StackMap.PushStack(castClass);
-
-                code.NewInstruction(stackTop.LoadOpcode, null, (int) localIndex);
                 code.StackMap.PushStack(stackTop);
 
                 code.NewInstruction(0xC1 /* instanceof */, castClass, null);
@@ -688,10 +711,13 @@ namespace SpaceFlint.CilToJava
                 code.NewInstruction(0x57 /* pop */, null, null);
                 code.StackMap.PopStack(CilMain.Where);
 
-                code.NewInstruction(stackTop.LoadOpcode, null, (int) localIndex);
+                code.NewInstruction(stackTop.LoadOpcode, null, localIndex);
                 code.NewInstruction(0xC0 /* checkcast */, castClass, null);
 
                 code.StackMap.PushStack(castClass);
+
+                if (usingTempIndex)
+                    locals.FreeTempIndex(localIndex);
             }
         }
 
