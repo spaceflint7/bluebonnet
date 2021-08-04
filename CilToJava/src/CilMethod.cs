@@ -80,7 +80,7 @@ namespace SpaceFlint.CilToJava
                 Flags |= CONSTRUCTOR;
             Flags |= THIS_ARG | ARRAY_CALL;
 
-            ImportParameters(fromMethod);
+            ImportParameters(fromMethod, null);
             ImportGenericParameters(fromMethod);
         }
 
@@ -91,7 +91,7 @@ namespace SpaceFlint.CilToJava
             DeclType = CilType.From(fromMethod.DeclaringType);
 
             SetMethodType(defMethod);
-            bool appendSuffix = ImportParameters(fromMethod);
+            bool appendSuffix = ImportParameters(fromMethod, defMethod);
             TranslateNameClrToJvm(fromMethod, appendSuffix);
 
             if (IsConstructor)
@@ -166,7 +166,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        bool ImportParameters(MethodReference fromMethod)
+        bool ImportParameters(MethodReference fromMethod, MethodDefinition defMethod)
         {
             bool appendSuffix = false;
 
@@ -194,7 +194,10 @@ namespace SpaceFlint.CilToJava
                         nm += "array-" + paramType.ArrayRank + "-";
                     if (paramType.IsByReference)
                         nm = "-ref" + nm.Replace("&", "");
-                    nm += "$" + ((GenericParameter) fromParameterType.GetElementType()).Position;
+                    nm += "$" + GenericParameterPosition(defMethod, i,
+                                    ((GenericParameter)
+                                            fromParameterType.GetElementType()));
+                    //nm += "$" + ((GenericParameter) fromParameterType.GetElementType()).Position;
                     paramType = CilType.WrapMethodGenericParameter(paramType, nm);
                     Flags |= GEN_ARGS;
                 }
@@ -275,6 +278,70 @@ namespace SpaceFlint.CilToJava
 
                 return true;
             }
+
+
+
+            static int GenericParameterPosition(MethodDefinition defMethod,
+                                                int parameterIndex,
+                                                GenericParameter parameter)
+            {
+                // when a method has parameters with a generic type, the
+                // method name gets a suffix like -generic-$n, where n is
+                // the index of the generic parameter in the generic type.
+                // e.g., method "int Mth(TY)" in class CA<TX,TY> would be
+                // named "Mth-generic-$1" because TY has generic index 1.
+                //
+                // however when the method overrides a base class method,
+                // the n should be the index of the generic parameter in
+                // the base type.  e.g., "override int Mth(UZ)" in class
+                // CB<UX,UY,UZ> : CA<UY,UZ> translated to "Mth-generic-$2"
+                // (as UZ has generic index 2 in CB) would be incorrect,
+                // because it breaks the overload/override chain.
+                //
+                // the code below identifies that CB.Mth is an override
+                // of a generic base type method, and that CB.UZ maps to
+                // CA.TY in the base Mth(), and prefers the index of CA.TY
+                // (i.e. 1) over CB.UZ (i.e. 2), to correctly translate
+                // the override as "Mth-generic-$1".
+
+                if (    parameter.Type == GenericParameterType.Type
+                     && defMethod != null
+                     && defMethod.IsVirtual && (! defMethod.IsNewSlot))
+                {
+                    var thisClass = defMethod.DeclaringType;
+                    if (thisClass.BaseType is GenericInstanceType baseClass)
+                    {
+                        var baseGenericArgs = baseClass.GenericArguments;
+
+                        foreach (var baseMethod in CilType.AsDefinition(baseClass).Methods)
+                        {
+                            if (    baseMethod.IsVirtual
+                                 && CompareMethods(defMethod, baseMethod))
+                            {
+                                // we found a base class method that matches
+                                // the overriding method, so take the position
+                                // (i.e. the generic parameter index within
+                                // generic type) from the base method parameter
+
+                                if (baseMethod.Parameters[parameterIndex].ParameterType
+                                        .GetElementType() is GenericParameter baseParameter
+                                    && baseGenericArgs.Count > baseParameter.Position
+                                    && baseGenericArgs[baseParameter.Position] == parameter)
+                                {
+                                    return baseParameter.Position;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // in any other case, for example if this is not an
+                // overriding method, or if the base type is not generic,
+                // then select the position within the current type
+
+                return parameter.Position;
+            }
+
         }
 
 
@@ -485,9 +552,25 @@ namespace SpaceFlint.CilToJava
             {
                 var prefixType = MethodIsShadowing(defMethod);
 
-                if (prefixType == null && DeclType.IsInterface && (! DeclType.IsRetainName))
+                if (prefixType == null && (! DeclType.IsRetainName))
                 {
-                    prefixType = DeclType;
+                    if (DeclType.IsInterface)
+                    {
+                        prefixType = DeclType;
+                    }
+                    else
+                    {
+                        // if a class inherits from system.IDisposable, and
+                        // defines a non-RetainName close() method, then we
+                        // must rename the method to prevent collision with
+                        // java.lang.AutoCloseable.close().
+                        // see also ConvertInterfaceCall() in CodeCall module.
+                        if (    defMethod.Name == "close" && (! IsRetainName)
+                             && DeclType.AssignableTo(SystemIDisposable))
+                        {
+                            prefixType = DeclType;
+                        }
+                    }
                 }
 
                 if (prefixType != null)
@@ -875,6 +958,9 @@ namespace SpaceFlint.CilToJava
 
         internal static readonly JavaMethodRef ValueClone =
                                     new JavaMethod("system-ValueMethod-Clone", CilType.SystemValueType);
+
+        internal static readonly JavaType SystemIDisposable =
+                                    new JavaType(0, 0, "system.IDisposable");
 
     }
 }

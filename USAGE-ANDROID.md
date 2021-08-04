@@ -1,16 +1,16 @@
 
 #### Goal
 
-- Set up development of an Android app using a .NET language
+- Set up development of an Android app using a .NET language.
 
     - Either in Visual Studio or using the command line `dotnet` tool.
 
 
 - Use Android Studio to build the app.
 
-    - With a Gradle plugin to compile .NET code.
+    - With a Gradle task to build the .NET project.
 
-    - And a Gradle build task to convert the .NET code to Java compiled form.
+    - And a Gradle task to convert the .NET code to Java compiled form.
 
 
 - Most of development should be possible on Windows without requiring an Android device.
@@ -20,10 +20,10 @@
 #### Environment Variables
 
 - Set the environment variable `MSBUILD_EXE` to point to `MSBuild.exe` program file.
-    - For example, `C:\Program Files (x86)\Microsoft Visual Studio\\2019\Community\MSBuild\Current\Bin\MSBuild.exe`
+    - For example, `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe`
 
 
-- Set the environment variable `BLUEBONNET_DIR` to point to a directory containing `Bluebonnet.exe`, `PruneMerge.exe`, `Baselib.jar` and `Android.dll`.
+- Set the environment variable `BLUEBONNET_DIR` to point to a directory containing `Bluebonnet.exe`, `Baselib.jar` and `Android.dll`.
 
 - These files can be downloaded from the [Bluebonnet releases](https://github.com/spaceflint7/bluebonnet/releases) page.
 
@@ -37,7 +37,7 @@
 
     - You may use some other project type or language instead of a C# console app.
 
-    - The project must be named `DotNet`.
+    - The project should be named `DotNet`.
 
 
 - Edit `DotNet.csproj` to add a reference to Android DLL created by Bluebonnet:
@@ -158,12 +158,13 @@
 - At the top of the `dependencies` section, insert:
 
         implementation files("$buildDir/dotnet/dotnet.jar")
+        implementation files("${System.env.BLUEBONNET_DIR}/baselib.jar")
 
 - After the `dependencies` section, append:
 
         task buildDotNet {
             doLast {
-                delete("${buildDir}/dotnet/DotNet.jar")
+                delete("${buildDir}/dotnet/dotnet.jar")
                 exec {
                     workingDir "${project.rootDir}"
                     commandLine System.env.MSBUILD_EXE ?: 'msbuild.exe',
@@ -176,16 +177,8 @@
                 }
                 exec {
                     commandLine "${System.env.BLUEBONNET_DIR}/Bluebonnet.exe",
-                            "${buildDir}/dotnet/DotNet.dll",
-                            "${buildDir}/dotnet/DotNet0.jar"
-                }
-                def manifest = new XmlSlurper().parse(android.sourceSets.main.manifest.srcFile)
-                exec {
-                    commandLine "${System.env.BLUEBONNET_DIR}/PruneMerge.exe",
-                            "${buildDir}/dotnet/DotNet0.jar",
-                            "${System.env.BLUEBONNET_DIR}/Baselib.jar",
-                            "${buildDir}/dotnet/DotNet.jar",
-                            ":${manifest.@package}${manifest.application.activity.'@android:name'}"
+                            "${buildDir}/dotnet/dotnet.dll",
+                            "${buildDir}/dotnet/dotnet.jar"
                 }
             }
         }
@@ -239,6 +232,7 @@
         dependencies {
 
             implementation files("$buildDir/dotnet/dotnet.jar")
+            implementation files("${System.env.BLUEBONNET_DIR}/baselib.jar")
             implementation 'androidx.appcompat:appcompat:1.3.0'
             implementation 'com.google.android.material:material:1.4.0'
             testImplementation 'junit:junit:4.+'
@@ -248,8 +242,7 @@
 
         task buildDotNet {
             doLast {
-                delete("${buildDir}/dotnet/DotNet.jar")
-
+                delete("${buildDir}/dotnet/dotnet.jar")
                 exec {
                     workingDir "${project.rootDir}"
                     commandLine System.env.MSBUILD_EXE ?: 'msbuild.exe',
@@ -262,23 +255,49 @@
                 }
                 exec {
                     commandLine "${System.env.BLUEBONNET_DIR}/Bluebonnet.exe",
-                            "${buildDir}/dotnet/DotNet.dll",
-                            "${buildDir}/dotnet/DotNet0.jar"
-                }
-                def manifest = new XmlSlurper().parse(android.sourceSets.main.manifest.srcFile)
-                exec {
-                    commandLine "${System.env.BLUEBONNET_DIR}/PruneMerge.exe",
-                            "${buildDir}/dotnet/DotNet0.jar",
-                            "${System.env.BLUEBONNET_DIR}/Baselib.jar",
-                            "${buildDir}/dotnet/DotNet.jar",
-                            ":${manifest.@package}${manifest.application.activity.'@android:name'}"
+                            "${buildDir}/dotnet/dotnet.dll",
+                            "${buildDir}/dotnet/dotnet.jar"
                 }
             }
         }
 
         preBuild.dependsOn buildDotNet
 
-#### Gradle Build Script - Overview
+#### ProGuard Rules
+
+- If you wish to minify your release build using Android R8 (ProGuard), enter the following settings into your `app/proguard-rules.pro` file:
+
+        #
+        # these rules prevent discarding of generic types
+        #
+        -keepclassmembers class * implements system.IGenericEntity {
+            public static final java.lang.String ?generic?variance;
+            public static final *** ?generic?info?class;
+            private system.RuntimeType ?generic?type;
+            public static final *** ?generic?info?method (...);
+            <init>(...);
+        }
+
+
+- Only if you wish to use F#, then enter the settings below as well.  They are needed with C# code.
+
+        #
+        # F# printf
+        #
+        -keepclassmembers class microsoft.fsharp.core.PrintfImpl$ObjectPrinter {
+            *** GenericToString? (...);
+        }
+        -keepclassmembers class microsoft.fsharp.core.PrintfImpl$Specializations* {
+            *** * (...);
+        }
+        -keep class microsoft.fsharp.core.CompilationMappingAttribute { *; }
+        -keep class **$Tags { *; }
+        -keepclassmembers class * implements java.io.Serializable {
+            *** get_* ();
+        }
+        -keepattributes InnerClasses
+
+#### To Summarize of All of the Above
 
 - In place of Java source files, a new dependency was added on a JAR file - `dotnet.jar`.
 
@@ -286,16 +305,13 @@
 
     - Run `MSBuild` on the .NET project, in `Release` configuration, with the preprocessor define `ANDROID`
 
-    - Run `Bluebonnet` on the resulting `dotnet.dll` to create `dotnet0.jar`
+    - Run `Bluebonnet` on the resulting `dotnet.dll` to create `dotnet.jar`
 
-    - Extract the class name for the main activity from the file `AndroidManifest.xml`
-
-    - Run `PruneMerge` to merge `Baselib.jar` (from Bluebonnet) and `dotnet0.jar` into the final `dotnet.jar`
-
-        - All unreferenced classes are discard from the output.
 
 
 - The `buildDotNet` task was set to execute before the Gradle `preBuild` task.
+
+- ProGuard rules were added to prevent stripping fields and methods used by Bluebonnet to support .NET generic types.
 
 #### Test It
 

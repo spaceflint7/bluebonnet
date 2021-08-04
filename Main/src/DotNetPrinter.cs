@@ -44,7 +44,7 @@ public class DotNetPrinter
                 {
                     txt.Write("{0}{1}",
                         (comma ? ", " : string.Empty),
-                        intrface.InterfaceType.FullName);
+                        intrface.InterfaceType?.FullName ?? "(null)");
 
                     comma = true;
                 }

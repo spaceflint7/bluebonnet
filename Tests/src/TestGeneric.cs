@@ -24,6 +24,7 @@ namespace Tests
             TestGenericInterface2();
             TestGenericOverload3();
             TestGenericMethodWithEnum();
+            TestGenericByRef();
         }
 
         //
@@ -179,7 +180,7 @@ namespace Tests
             public virtual int Get(T2 v) => 2;
         }
 
-        class MyOv2<T1,T2> : MyOv1<T1,T2>
+        class MyOv2<T1,T2> : MyOv1<T2,T1>
         {
             public override int Get(T1 v) => 3;
             public override int Get(T2 v) => 4;
@@ -190,6 +191,8 @@ namespace Tests
             var a = new MyOv1<int,bool>();
             Console.Write(a.Get(1));
             Console.Write(a.Get(true));
+            Console.Write(((I1<bool>) a).Get(true));
+            Console.Write(((I2<int>) a).Get(1));
             var b = new MyOv2<int,bool>();
             Console.Write(b.Get(1));
             Console.WriteLine(b.Get(true));
@@ -224,6 +227,7 @@ namespace Tests
         public class CccC1<T1> : CccB1<T1,int>     { public override void DoIt(ref T1 a, ref int b)     => Console.Write("OK1 "); }
         public class CccC2<T1> : CccB1<T1,Version> { public override void DoIt(ref T1 a, ref Version b) => Console.Write("OK2 "); }
         public class CccC3<T1> : CccB1<T1,object>  { public override void DoIt(ref T1 a, ref object b)  => Console.Write("OK3 "); }
+        public class CccC4<T0,T2,T1> : CccB1<T1,T2>{ public override void DoIt(ref T1 a, ref T2 b)      => Console.Write("OK4 "); }
 
         void TestGenericOverload3()
         {
@@ -235,10 +239,12 @@ namespace Tests
             CccB1<bool,int>     c1  = new CccC1<bool>();
             CccB1<bool,Version> c2  = new CccC2<bool>();
             CccB1<bool,object>  c3  = new CccC3<bool>();
+            CccB1<bool,object>c4  = new CccC4<int,object,bool>();
 
             c1.DoIt(ref bFalse, ref iZero);
             c2.DoIt(ref bFalse, ref vZero);
             c3.DoIt(ref bFalse, ref oZero);
+            c4.DoIt(ref bFalse, ref oZero);
             Console.WriteLine();
         }
 
@@ -255,6 +261,21 @@ namespace Tests
                 Console.Write(a);
                 Console.Write(",");
                 return a;
+            }
+        }
+
+        //
+        // TestGenericByRef
+        //
+
+        void TestGenericByRef()
+        {
+            var guid = new Guid("12345678123456781234567812345678");
+            Helper<Guid>(ref guid, true);
+
+            void Helper<T>(ref T arg, bool cond) where T : IFormattable
+            {
+                Console.WriteLine(arg.ToString(cond ? "" : "D", null));
             }
         }
 

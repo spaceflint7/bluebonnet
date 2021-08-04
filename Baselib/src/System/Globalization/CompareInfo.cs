@@ -1285,7 +1285,7 @@ namespace system.globalization {
             var iterator = JavaCollator.getCollationElementIterator("" + ch0);
             if (iterator.next() != 0)
             {
-                throw new System.Globalization.CultureNotFoundException(
+                throw new PlatformNotSupportedException(
                                         "unexpected value for UNICODE NULL");
             }
         }

@@ -18,7 +18,7 @@ namespace SpaceFlint.CilToJava
             valueClass.Super = CilType.SystemValueType.ClassName;
 
             CreateDefaultConstructor(valueClass, fromType, numCastableInterfaces, true);
-            CreateValueMethods(valueClass, fromType);
+            CreateValueMethods(valueClass, fromType, numCastableInterfaces);
 
             if ((valueClass.Flags & JavaAccessFlags.ACC_ABSTRACT) == 0)
                 valueClass.Flags |= JavaAccessFlags.ACC_FINAL;
@@ -58,7 +58,8 @@ namespace SpaceFlint.CilToJava
             }
 
             // init the array of generic interfaces
-            InterfaceBuilder.InitInterfaceArrayField(fromType, numCastableInterfaces, code);
+            InterfaceBuilder.InitInterfaceArrayField(
+                    fromType, numCastableInterfaces, code, 0);
 
             if (initFields)
             {
@@ -82,11 +83,12 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static void CreateValueMethods(JavaClass valueClass, CilType fromType)
+        static void CreateValueMethods(JavaClass valueClass, CilType fromType,
+                                       int numCastableInterfaces)
         {
             CreateValueClearMethod(valueClass, fromType);
             CreateValueCopyToMethod(valueClass, fromType);
-            CreateValueCloneMethod(valueClass, fromType);
+            CreateValueCloneMethod(valueClass, fromType, numCastableInterfaces);
 
             //
             // system-ValueMethod-Clear() resets all fields to their default value
@@ -180,9 +182,11 @@ namespace SpaceFlint.CilToJava
             // any boxed fields
             //
 
-            void CreateValueCloneMethod(JavaClass valueClass, CilType fromType)
+            void CreateValueCloneMethod(JavaClass valueClass, CilType fromType,
+                                        int numCastableInterfaces)
             {
-                var code = CilMain.CreateHelperMethod(valueClass, CilMethod.ValueClone, 1, 3);
+                var code = CilMain.CreateHelperMethod(valueClass, CilMethod.ValueClone,
+                                              1, (numCastableInterfaces == 0) ? 3 : 5);
                 bool atLeastOneField = false;
 
                 code.NewInstruction(0x19 /* aload */, null, (int) 0);
@@ -215,7 +219,15 @@ namespace SpaceFlint.CilToJava
                 }
 
                 if (! atLeastOneField)
-                    code.NewInstruction(0xC0 /* checkcast */, CilType.SystemValueType, null);
+                    code.NewInstruction(0xC0 /* checkcast */, fromType, null);
+
+                if (numCastableInterfaces != 0)
+                {
+                    code.StackMap = new JavaStackMap();
+                    // init the array of generic interfaces
+                    InterfaceBuilder.InitInterfaceArrayField(
+                        fromType, numCastableInterfaces, code, -1);
+                }
 
                 code.NewInstruction(fromType.ReturnOpcode, null, null);
             }

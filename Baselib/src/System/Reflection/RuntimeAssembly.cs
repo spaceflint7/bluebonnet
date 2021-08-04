@@ -100,6 +100,12 @@ namespace system.reflection
         }
 
         //
+        // Properties
+        //
+
+        public override bool ReflectionOnly => false;
+
+        //
         // ISerializable
         //
 

@@ -100,8 +100,24 @@ namespace SpaceFlint.CilToJava
                     // Android 'D8' desugars static methods on an interface by
                     // moving into a separate class, so we do it ourselves.
                     // see also system.RuntimeType.CreateGeneric() in baselib
-                    infoClass = CilMain.CreateInnerClass(jclass, jclass.Name + "$$info");
+                    infoClass = CilMain.CreateInnerClass(jclass, jclass.Name + "$$info",
+                                            markGenericEntity: true);
                     CilMain.JavaClasses.Add(infoClass);
+
+                    // Android 'R8' (ProGuard) might discard this new class,
+                    // so insert a dummy field with the type of the class.
+                    // see also ProGuard rules in IGenericEntity in baselib
+                    var infoClassField = new JavaField();
+                    infoClassField.Name = "-generic-info-class";
+                    infoClassField.Type = new JavaType(0, 0, infoClass.Name);
+                    infoClassField.Class = jclass;
+                    infoClassField.Flags = JavaAccessFlags.ACC_PUBLIC
+                                         | JavaAccessFlags.ACC_STATIC
+                                         | JavaAccessFlags.ACC_FINAL
+                                         | JavaAccessFlags.ACC_SYNTHETIC;
+                    if (jclass.Fields == null)
+                        jclass.Fields = new List<JavaField>(1);
+                    jclass.Fields.Add(infoClassField);
                 }
 
                 GenericUtil.CreateGenericInfoMethod(infoClass, dataClass, myType);
@@ -347,10 +363,12 @@ namespace SpaceFlint.CilToJava
                 attrs &= ~FieldAttributes.Static;
             }
 
-            if ((attrs & FieldAttributes.InitOnly) != 0)
+            if (0 != (attrs & (   FieldAttributes.InitOnly
+                                | FieldAttributes.Literal)))
             {
                 flags |= JavaAccessFlags.ACC_FINAL;
-                attrs &= ~FieldAttributes.InitOnly;
+                attrs &= ~(   FieldAttributes.InitOnly
+                            | FieldAttributes.Literal);
             }
 
             if ((attrs & FieldAttributes.NotSerialized) != 0)
@@ -359,8 +377,7 @@ namespace SpaceFlint.CilToJava
                 attrs &= ~FieldAttributes.NotSerialized;
             }
 
-            attrs &= ~(   FieldAttributes.Literal
-                        | FieldAttributes.HasFieldRVA
+            attrs &= ~(   FieldAttributes.HasFieldRVA
                         | FieldAttributes.HasDefault
                         | FieldAttributes.SpecialName
                         | FieldAttributes.RTSpecialName);
@@ -385,10 +402,8 @@ namespace SpaceFlint.CilToJava
                     for (int i = 0; i < n; i++)
                     {
                         var defMethod = cilType.Methods[i];
-                        /*
                         if (defMethod.HasCustomAttribute("Discard"))
                             continue; // if decorated with [java.attr.Discard], don't export to java
-                        */
 
                         var genericMark = CilMain.GenericStack.Mark();
                         var myMethod = CilMain.GenericStack.EnterMethod(defMethod);

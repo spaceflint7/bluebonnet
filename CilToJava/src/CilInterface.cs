@@ -171,6 +171,18 @@ namespace SpaceFlint.CilToJava
         public List<CilType> Parameters;
         public CilType ReturnType;
 
+        // any resolved generic types from return type and parameters,
+        // concatenated together.  used to differentiate generic methods
+        // that differ only in return or parameters types.  for example:
+        //
+        //          interface I1<T> { int M(T v); }
+        //          interface I2<T> { int M(T v); }
+        //          class CC<T1,T2> : I1<T2>, I2<T1>
+        //              int M(T1 v) => ...;
+        //              int M(T2 v) => ...;
+        //
+        // see also InterfaceBuilder.BuildGenericProxy()
+        public string ResolvedGenericTypes;
 
 
         public CilInterfaceMethod(CilMethod fromMethod)
@@ -186,11 +198,14 @@ namespace SpaceFlint.CilToJava
             if (idx != -1)
                 name = name.Substring(idx + 1);
 
+            ResolvedGenericTypes = "";
+
             var returnType = (CilType) fromMethod.ReturnType;
             if (returnType.IsGenericParameter)
             {
                 var genericMark = CilMain.GenericStack.Mark();
                 var (type, index) = CilMain.GenericStack.Resolve(returnType.JavaName);
+                ResolvedGenericTypes = $"{type},{index};";
                 if (index == 0)
                     returnType = type;
 
@@ -208,6 +223,7 @@ namespace SpaceFlint.CilToJava
 
                     var genericMark = CilMain.GenericStack.Mark();
                     var (type, index) = CilMain.GenericStack.Resolve(parameter.JavaName);
+                    ResolvedGenericTypes += $"{type},{index};";
                     if (index == 0)
                     {
                         if (parameter.ArrayRank != 0)
@@ -341,6 +357,9 @@ namespace SpaceFlint.CilToJava
                             // in the context of resolving interface implementations
                             continue;
                         }
+
+                        if (fromMethod.HasCustomAttribute("Discard"))
+                            continue; // skip if decorated with [java.attr.Discard]
 
                         var genericMark = CilMain.GenericStack.Mark();
                         var inputMethod = CilMain.GenericStack.EnterMethod(fromMethod);

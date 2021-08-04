@@ -125,6 +125,10 @@ namespace SpaceFlint.CilToJava
             byte op;
             if (! isStatic)
             {
+                if (method.IsConstructor &&
+                        LoadFieldInConstructor(fldName, fldType, fldClass))
+                    return true;
+
                 PopObjectAndLoadFromSpan(fldClass);
                 op = 0xB4; // getfield
             }
@@ -176,6 +180,108 @@ namespace SpaceFlint.CilToJava
 
             // pop object reference
             stackMap.PopStack(CilMain.Where);
+        }
+
+
+
+        bool LoadFieldInConstructor(string fldName, CilType fldType, CilType fldClass)
+        {
+            // Java does not allow 'getfield' instructions on an 'uninitializedThis'
+            // until the call to super constructor.  but in .Net this is permitted,
+            // and the F# compiler generates such code in some cases.  we try to work
+            // around this, by identifying the constructor parameter that was used in
+            // an earlier 'putfield', and loading that, instead of doing 'getfield'.
+
+            bool isUninitializedThisField =
+                        (    method.IsConstructor && fldClass.Equals(method.DeclType)
+                          && stackMap.GetLocal(0).Equals(JavaStackMap.UninitializedThis));
+            if (! isUninitializedThisField)
+                return false;
+
+            // most recent instruction before the 'getfield'
+            // should have been 'ldarg.0', translated to 'aload_0'
+            int i = code.Instructions.Count - 1;
+            if (i > 0 && code.Instructions[i].Opcode == 0x19 /* aload */
+                      && code.Instructions[i].Data is int thisIndex
+                      && thisIndex == 0
+                      // note that we pop the stack here
+                      && code.StackMap.PopStack(CilMain.Where)
+                            .Equals(JavaStackMap.UninitializedThis))
+            {
+                // try to find an earlier 'putfield' instruction for the field
+                while (i-- > 0)
+                {
+                    var inst = code.Instructions[i];
+                    if (    inst.Opcode == 0xB5 /* putfield */
+                         && method.DeclType.Equals(inst.Class))
+                    {
+                        var instField = (JavaFieldRef) inst.Data;
+                        if (    fldName == instField.Name
+                             && fldType.Equals(instField.Type))
+                        {
+                            // try to find the load instruction that was used
+                            // to load the value, for that earlier 'putfield'
+                            if (FindLoadLocal(i - 1, code.Instructions.Count - 1))
+                                return true;
+                        }
+                    }
+                }
+            }
+            throw new Exception("load from uninitialized this");
+
+
+            bool FindLoadLocal(int prevIdx, int lastIdx)
+            {
+                var prevInst = code.Instructions[prevIdx];
+
+                if (    prevIdx > 0 && prevInst.Opcode == 0xB8 /* invokestatic */
+                     && (JavaMethodRef) prevInst.Data is JavaMethodRef prevMethod)
+                {
+                    if (prevMethod.Name == "Box")
+                    {
+                        // we possibly found the sequence used in boxing -
+                        //      xload value, invokestatic Value.Box(), putfield
+
+                        prevInst = code.Instructions[prevIdx - 1];
+                    }
+                    else if (   prevIdx > 5 && prevMethod.Name == "Copy"
+                             && code.Instructions[prevIdx - 1].Opcode == 0x5A /* dup_x1 */
+                             && code.Instructions[prevIdx - 2].Opcode == 0xB8 /* invokestatic */
+                             && code.Instructions[prevIdx - 3].Opcode == 0x19 /* aload (type) */
+                             && code.Instructions[prevIdx - 4].Opcode == 0xB8 /* invokestatic */
+                             && code.Instructions[prevIdx - 5].Opcode == 0x19 /* aload (value) */)
+                    {
+                        // we possibly found the sequence used in generics -
+                        //      aload (local to use for store value)
+                        //      invokestatic Generic.Load
+                        //      aload (generic type parameter)
+                        //      invokestatic Generic.New
+                        //      dup_x1
+                        //      invokestatic Generic.Copy    <=== prevIdx
+                        //      putfield
+                        // (see also StoreInstance method in this module)
+
+                        prevInst = code.Instructions[prevIdx - 5];
+                    }
+                }
+
+                if (    prevInst.Opcode >= 0x15 /* iload, lload, fload, */
+                     && prevInst.Opcode <= 0x19 /*        dload, aload  */
+                     && prevInst.Data is int localIndex)
+                {
+                    // if the instruction before the 'putfield' is a load
+                    // from local, and assuming this local is a parameter,
+                    // then we can just load this local again, to replace
+                    // a 'getfield' instruction that cannot access 'this'
+
+                    code.Instructions[lastIdx].Opcode = prevInst.Opcode;
+                    code.Instructions[lastIdx].Data = localIndex;
+                    stackMap.PushStack(code.StackMap.GetLocal(localIndex));
+                    return true;
+                }
+
+                return false;
+            }
         }
 
 

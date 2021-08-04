@@ -67,7 +67,8 @@ namespace SpaceFlint.CilToJava
 
 
         internal static JavaClass CreateInnerClass(JavaClass outerClass, string innerName,
-                                                   JavaAccessFlags innerFlags = 0)
+                                                   JavaAccessFlags innerFlags = 0,
+                                                   bool markGenericEntity = false)
         {
             if (innerFlags == 0)
             {
@@ -84,6 +85,9 @@ namespace SpaceFlint.CilToJava
             innerClass.Flags = innerFlags;
             innerClass.Fields = new List<JavaField>();
             innerClass.Methods = new List<JavaMethod>();
+
+            if (markGenericEntity)
+                innerClass.AddInterface("system.IGenericEntity");
 
             outerClass.AddInnerClass(innerClass);
             return innerClass;

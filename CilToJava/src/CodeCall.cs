@@ -180,6 +180,7 @@ namespace SpaceFlint.CilToJava
             var currentClass = method.DeclType;
             var callClass = callMethod.DeclType;
 
+            bool isCallToClone = false;
             byte op;
             if (callMethod.IsStatic)
             {
@@ -245,10 +246,7 @@ namespace SpaceFlint.CilToJava
                 }
 
                 if (callMethod.Name == "clone" && callMethod.Parameters.Count == 0)
-                {
-                    // if calling clone on the super object, implement Cloneable
-                    code.Method.Class.AddInterface("java.lang.Cloneable");
-                }
+                    isCallToClone = true;
             }
             else
             {
@@ -272,6 +270,22 @@ namespace SpaceFlint.CilToJava
                 ClearMethodArguments(callMethod, (op == 0xB7));
 
                 PushMethodReturnType(callMethod);
+
+                if (isCallToClone)
+                {
+                    // if calling clone on the super object, implement Cloneable
+                    code.Method.Class.AddInterface("java.lang.Cloneable");
+
+                    if (numCastableInterfaces != 0)
+                    {
+                        code.NewInstruction(
+                            0xC0 /* checkcast */, method.DeclType, null);
+
+                        // init the array of generic interfaces
+                        InterfaceBuilder.InitInterfaceArrayField(
+                                method.DeclType, numCastableInterfaces, code, -1);
+                    }
+                }
             }
 
             return true;
@@ -306,7 +320,12 @@ namespace SpaceFlint.CilToJava
                     callClass = CilType.From(CilType.SystemValueType);
                 }
                 else
+                {
+                    if (ConvertInterfaceCall(callClass, callMethod))
+                        return true;
+
                     op = 0xB9; // invokeinterface
+                }
             }
             else
             {
@@ -463,6 +482,40 @@ namespace SpaceFlint.CilToJava
             }
 
 
+            return false;
+        }
+
+
+
+        bool ConvertInterfaceCall(CilType callClass, CilMethod callMethod)
+        {
+            // convert a call to System.IDisposable.Dispose() to call
+            // java.lang.AutoCloseable.close(), so a "using" statement
+            // can reference java classes imported by DotNetImporter.
+            //
+            // note that our system.IDisposable in baselib inherits from
+            // java.lang.AutoCloseable and has a default implementation
+            // of close() that calls Dispatch().
+            //
+            // see also handling of java.lang.AutoCloseable in DotNetImporter,
+            // and of close() method in CilMethod.InsertMethodNamePrefix.
+
+            if (    callClass.ClassName == CilMethod.SystemIDisposable.ClassName
+                 && callMethod.Name == "system-IDisposable-Dispose"
+                 && callMethod.Parameters.Count == 0)
+            {
+                if (method.DeclType.ClassName == CilMethod.SystemIDisposable.ClassName)
+                {
+                    // we are compiling system.IDisposable.close(),
+                    // and want to keep the call to Dispose() as is
+                    return false;
+                }
+                code.NewInstruction(0xB9 /* invokeinterface */,
+                                    new JavaType(0, 0, "java.lang.AutoCloseable"),
+                                    new JavaMethodRef("close", JavaType.VoidType));
+                ClearMethodArguments(callMethod, false);
+                return true;
+            }
             return false;
         }
 

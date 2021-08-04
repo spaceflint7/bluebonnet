@@ -711,33 +711,34 @@ namespace system
         //
 
         public static void Sort<T>(T[] array)
-            => SortGeneric(array, array, 0, -1, false, null);
+            => SortGeneric<T>(array, array, 0, -1, false, null);
 
-        public static void Sort<T>(T[] array, system.collections.generic.IComparer<T> comparer)
-            => SortGeneric(array, array, 0, -1, false, comparer);
+        public static void Sort<T>(T[] array, IComparer<T> comparer)
+            => SortGeneric<T>(array, array, 0, -1, false, comparer);
 
         public static void Sort<T>(T[] array, int index, int length)
-            => SortGeneric(array, array, index, length, true, null);
+            => SortGeneric<T>(array, array, index, length, true, null);
 
-        public static void Sort<T>(T[] array, int index, int length, system.collections.generic.IComparer<T> comparer)
-            => SortGeneric(array, array, index, length, true, comparer);
+        public static void Sort<T>(T[] array, int index, int length, IComparer<T> comparer)
+            => SortGeneric<T>(array, array, index, length, true, comparer);
 
         public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items)
-            => SortGeneric(keys, items, 0, -1, false, null);
+            => SortGeneric<TKey>(keys, items, 0, -1, false, null);
 
-        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, system.collections.generic.IComparer<TKey> comparer)
-            => SortGeneric(keys, items, 0, -1, false, comparer);
+        public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, IComparer<TKey> comparer)
+            => SortGeneric<TKey>(keys, items, 0, -1, false, comparer);
 
         public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length)
-            => SortGeneric(keys, items, index, length, true, null);
+            => SortGeneric<TKey>(keys, items, index, length, true, null);
 
         public static void Sort<TKey, TValue>(TKey[] keys, TValue[] items, int index, int length,
-                                              system.collections.generic.IComparer<TKey> comparer)
-            => SortGeneric(keys, items, index, length, true, comparer);
+                                              IComparer<TKey> comparer)
+            => SortGeneric<TKey>(keys, items, index, length, true, comparer);
 
-        private static void SortGeneric(object keys_, object items_,
-                                        int index, int length, bool haveLength,
-                                        java.util.Comparator comparer)
+        private static void SortGeneric<T>(object keys_, object items_,
+                                           int index, int length,
+                                           bool haveLength,
+                                           IComparer<T> comparer)
         {
             ThrowIfNull(keys_);
             var keys = GetProxy(keys_);
@@ -749,7 +750,8 @@ namespace system
                 ThrowIfNull(items_);
                 items = GetProxy(items_);
             }
-            SortCommon(keys, items, index, length, haveLength, comparer);
+            SortCommon(keys, items, index, length, haveLength,
+                       new system.collections.GenericComparerProxy<T>(comparer));
         }
 
         //
@@ -1463,10 +1465,9 @@ namespace system
                         // create the Array.Proxy<T> object, where T is the array element.
                         // note that we use reflection to call the constructor, which takes
                         // one additional hidden parameter for the generic type.
-                        var elementType =
-                                system.RuntimeType.GetType(objClass.getComponentType());
                         var newProxyObject =
-                                ProxyConstructor.newInstance(new object[] { obj, elementType });
+                                ProxyConstructor.newInstance(new object[] {
+                                        obj, GetArrayElementType(obj, objClass) });
                         proxy = ArrayProxyCache.GetOrAdd(obj, newProxyObject);
                     }
                     if (ok == 2)
@@ -1524,6 +1525,38 @@ namespace system
             // CodeCall.Translate_Return and GenericUtil.ShouldCallGenericCast),
             // we avoid this by casting it first to ProxySyncRoot
             return (Array) (Array.ProxySyncRoot) proxy;
+        }
+
+        private static System.Type GetArrayElementType(
+                                object arrayObject, java.lang.Class arrayClass)
+        {
+            // an array object does not keep generic type information
+            // for its component, so a Tuple<int,string>[] array becomes
+            // just Tuple$$2[].  casting to IEnumerable<Tuple<int,string>>
+            // would fail.  below, we try to extract the concrete generic
+            // type from the first element in the array.
+            //
+            // first, check if the array component is a non-concrete
+            // generic type, and that the array has at least one element.
+            var elementType = system.RuntimeType.GetType(
+                                            arrayClass.getComponentType());
+            if (    elementType.IsGenericTypeDefinition
+                 && java.lang.reflect.Array.getLength(arrayObject) > 0)
+            {
+                // extract the first element, and make sure it is the same
+                // class as the array (so same number of generic argument)
+                var element0 = java.lang.reflect.Array.get(arrayObject, 0);
+                if (    (! object.ReferenceEquals(element0, null))
+                     && element0.GetType() is RuntimeType element0Type
+                     && ((RuntimeType) elementType).JavaClassForArray()
+                                == element0Type.JavaClassForArray())
+                {
+                    // return a concrete generic type
+                    elementType = elementType.MakeGenericType(
+                                    element0Type.GetGenericArguments());
+                }
+            }
+            return elementType;
         }
 
         public static void MarkJagged(object obj)

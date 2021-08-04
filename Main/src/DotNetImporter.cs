@@ -182,6 +182,22 @@ public class DotNetImporter
             }
         }
 
+        // arrange Java inner classes as CIL nested classes,
+        // and add Java outer classes to the CIL module itself
+
+        foreach (var jclass in classes2)
+        {
+            Where.Push($"class '{jclass.Name}'");
+
+            var cilType = typeMap[jclass.Name] as TypeDefinition;
+            AddClassToDeclaringType(cilType, jclass);
+
+            Where.Pop();
+        }
+
+        // establish links between classes and their
+        // super classes and interfaces
+
         foreach (var jclass in classes2)
         {
             Where.Push($"class '{jclass.Name}'");
@@ -335,7 +351,7 @@ public class DotNetImporter
 
 
 
-    public void LinkCilTypesByClass(TypeDefinition cilType, JavaClass jclass)
+    public void AddClassToDeclaringType(TypeDefinition cilType, JavaClass jclass)
     {
         if (jclass.IsInnerClass())
         {
@@ -363,7 +379,12 @@ public class DotNetImporter
         {
             module.Types.Add(cilType);
         }
+    }
 
+
+
+    public void LinkCilTypesByClass(TypeDefinition cilType, JavaClass jclass)
+    {
         var superName = jclass.Super;
         if (superName == "java.lang.Enum")
             superName = null;
@@ -378,6 +399,16 @@ public class DotNetImporter
                     {
                         cilType.Interfaces.Add(
                                 new InterfaceImplementation(cilSuperTypeRef));
+                    }
+                    if (jclass.Name == "java.lang.AutoCloseable")
+                    {
+                        // make java.lang.AutoCloseable extend System.IDisposable,
+                        // to allow use of imported classes in "using" statement.
+                        // see also ConvertInterfaceCall in CodeCall module.
+                        var iDisposableRef = new TypeReference(
+                            "System", "IDisposable", module, module.TypeSystem.CoreLibrary);
+                        cilType.Interfaces.Add(
+                                new InterfaceImplementation(iDisposableRef));
                     }
                 }
                 else
@@ -707,7 +738,7 @@ public class DotNetImporter
         var method = new MethodDefinition(
                 "op_Explicit", attrs, CilTypeReference(JavaType.ClassType));
         method.Parameters.Add(new ParameterDefinition(
-                    "type", 0, new TypeReference("System", "Type",
+                    "source", 0, new TypeReference("System", "Type",
                                         module, module.TypeSystem.CoreLibrary)));
         SetCommonMethodBody(method);
         cilType.Methods.Add(method);

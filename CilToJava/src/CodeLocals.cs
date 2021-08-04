@@ -461,9 +461,10 @@ namespace SpaceFlint.CilToJava
             }
             else
             {
-                if (localType.IsGenericParameter && (! localType.IsByReference))
+                if (localType.IsGenericParameter)
                 {
-                    GenericUtil.ValueLoad(code);
+                    if (! localType.IsByReference)
+                        GenericUtil.ValueLoad(code);
                     localType = CilType.From(JavaType.ObjectType);
                 }
 
@@ -612,7 +613,7 @@ namespace SpaceFlint.CilToJava
         }
 
 
-
+        /*
         public List<(CilType, int)> GetUninitializedVariables()
         {
             List<(CilType, int)> list = null;
@@ -629,7 +630,7 @@ namespace SpaceFlint.CilToJava
             }
             return list;
         }
-
+        */
 
 
         public (CilType, int) GetLocalFromLoadInst(Code op, object data)

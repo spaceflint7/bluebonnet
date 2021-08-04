@@ -178,7 +178,8 @@ namespace SpaceFlint.CilToJava
             //
 
             JavaClass CreateClass(JavaClass fromClass) =>
-                CilMain.CreateInnerClass(fromClass, fromClass.Name + "$$static", 0);
+                CilMain.CreateInnerClass(fromClass, fromClass.Name + "$$static", 0,
+                                         markGenericEntity: true);
 
             //
             // create a private instance field to hold the runtime type
@@ -345,13 +346,14 @@ namespace SpaceFlint.CilToJava
             }
             if (! anyVariance)
             {
+                /* removed; see IComparer.cs in baselib
                 if (fromType.JavaName == "system.collections.generic.IComparer$$1")
                 {
                     // force a variance string for an interface that we create
                     // as an abstract class;  see also IComparer.cs in baselib
                     varianceString = "I";
                 }
-                else
+                else*/
                     return;
             }
 
@@ -487,6 +489,16 @@ namespace SpaceFlint.CilToJava
         {
             if (loadIndex < 0)
             {
+                if (    code.Method.Class != null
+                     && (code.Method.Class
+                            .Flags & JavaAccessFlags.ACC_INTERFACE) != 0)
+                {
+                    // a method compiled as part of an interface does not
+                    // have access to the generic-type member field
+                    throw CilMain.Where.Exception(
+                        "unsupported generic argument reference in interface method");
+                }
+
                 // generic type is accessible through the generic-type member field
 
                 code.NewInstruction(0x19 /* aload */, null, (int) 0);

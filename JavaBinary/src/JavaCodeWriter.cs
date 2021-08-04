@@ -189,6 +189,8 @@ namespace SpaceFlint.JavaBinary
 
             else if (inst.Data is double vDouble)
             {
+                if (FillInstruction_ConstLoad_Double(inst, vDouble))
+                    return;
                 constantIndex = wtr.ConstDouble(vDouble);
                 op = 0x14;
             }
@@ -215,7 +217,11 @@ namespace SpaceFlint.JavaBinary
                 }
 
                 else if (inst.Data is float vFloat)
+                {
+                    if (FillInstruction_ConstLoad_Float(inst, vFloat))
+                        return;
                     constantIndex = wtr.ConstFloat(vFloat);
+                }
 
                 else if (inst.Data is string vString)
                     constantIndex = wtr.ConstString(vString);
@@ -276,6 +282,49 @@ namespace SpaceFlint.JavaBinary
             {
                 inst.Bytes = new byte[1];
                 inst.Bytes[0] = (byte) (9 + value); // lconst_0, lconst_1
+            }
+            else
+                return false;
+            return true;
+        }
+
+
+
+        bool FillInstruction_ConstLoad_Float(Instruction inst, float value)
+        {
+            if (value == 0.0f)
+            {
+                inst.Bytes = new byte[1];
+                inst.Bytes[0] = (byte) 11; // fconst_0
+            }
+            else if (value == 1.0f)
+            {
+                inst.Bytes = new byte[1];
+                inst.Bytes[0] = (byte) 12; // fconst_1
+            }
+            else if (value == 2.0f)
+            {
+                inst.Bytes = new byte[1];
+                inst.Bytes[0] = (byte) 13; // fconst_2
+            }
+            else
+                return false;
+            return true;
+        }
+
+
+
+        bool FillInstruction_ConstLoad_Double(Instruction inst, double value)
+        {
+            if (value == 0.0)
+            {
+                inst.Bytes = new byte[1];
+                inst.Bytes[0] = (byte) 14; // dconst_0
+            }
+            else if (value == 1.0)
+            {
+                inst.Bytes = new byte[1];
+                inst.Bytes[0] = (byte) 15; // dconst_1
             }
             else
                 return false;

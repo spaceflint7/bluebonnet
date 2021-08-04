@@ -346,13 +346,17 @@ namespace SpaceFlint.CilToJava
                 if (CodeSpan.LoadStore(false, intoType, null, dataType, code))
                     return;
 
-                if (    (! dataType.IsReference)
-                     && intoType is BoxedType intoBoxedType
-                     && dataType.PrimitiveType == intoBoxedType.UnboxedType.PrimitiveType)
+                if (    intoType is BoxedType intoBoxedType
+                     && dataType.PrimitiveType ==
+                                    intoBoxedType.UnboxedType.PrimitiveType)
                 {
-                    // 'stobj primitive' with a primitive value on the stack
-                    intoBoxedType.SetValueOV(code);
-                    return;
+                    // 'stobj primitive' with a primitive value on the stack,
+                    // or 'stobj primitive[]' with a primitive array on the stack
+                    if ((! dataType.IsReference) || dataType.IsArray)
+                    {
+                        intoBoxedType.SetValueOV(code);
+                        return;
+                    }
                 }
 
                 code.StackMap.PushStack(intoType);
