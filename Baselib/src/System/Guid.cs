@@ -9,7 +9,20 @@ namespace system
         [java.attr.RetainType] private java.util.UUID _uuid;
         private java.util.UUID uuid => _uuid ?? (_uuid = new java.util.UUID(0, 0));
 
-        public Guid(string g) => _uuid = java.util.UUID.fromString(g);
+        public Guid(string g)
+        {
+            if (g.Length == 32)
+            {
+                var g1 = (java.lang.CharSequence) (object) g;
+                g = new java.lang.StringBuilder(36)
+                            .append(g1,  0,   0 + 8).append('-')
+                            .append(g1,  8,   8 + 4).append('-')
+                            .append(g1, 12,  12 + 4).append('-')
+                            .append(g1, 16,  16 + 4).append('-')
+                            .append(g1, 20,  20 + 12).ToString();
+            }
+            _uuid = java.util.UUID.fromString(g);
+        }
 
         public override string ToString() => uuid.ToString();
         public string ToString(string format) => ToString(format, null);

@@ -9,11 +9,7 @@ namespace system
         public abstract int CompareTo(object obj);
 
         [java.attr.RetainName]
-        public int compareTo(object obj)
-        {
-            //return ((System.IComparable) this).CompareTo(obj);
-            return this.CompareTo(obj);
-        }
+        public int compareTo(object obj) => this.CompareTo(obj);
 
     }
 

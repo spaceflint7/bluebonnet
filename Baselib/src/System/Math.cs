@@ -49,9 +49,27 @@ namespace system
         public static double  Tan(double a) => java.lang.Math.tan(a);
         public static double Tanh(double a) => java.lang.Math.tanh(a);
 
+        public static double  Asin(double a) => java.lang.Math.asin(a);
+        public static double Asinh(double a) =>
+            java.lang.Math.log(a + java.lang.Math.sqrt(a * a + 1.0));
+        public static double  Acos(double a) => java.lang.Math.acos(a);
+        public static double Acosh(double a) =>
+            java.lang.Math.log(a + java.lang.Math.sqrt(a * a - 1.0));
+        public static double  Atan(double a) => java.lang.Math.atan(a);
+        public static double Atan2(double x, double y) => java.lang.Math.atan2(x, y);
+        public static double Atanh(double a) => 0.5 * java.lang.Math.log((1 + a) / (1 - a));
+
+        public static double  Cbrt(double a)           => java.lang.Math.cbrt(a);
+        public static double   Exp(double a)           => java.lang.Math.exp(a);
         public static double   Pow(double a, double b) => java.lang.Math.pow(a, b);
         public static double   Sqrt(double a)          => java.lang.Math.sqrt(a);
         public static double ScaleB(double x, int n)   => java.lang.Math.scalb(x, n);
+
+        public static double Ceiling(double a) => java.lang.Math.ceil(a);
+        public static double   Floor(double a) => java.lang.Math.floor(a);
+        public static double IEEERemainder(double x, double y) =>
+                java.lang.Math.IEEEremainder(x, y);
+        public static double CopySign(double x, double y) => java.lang.Math.copySign(x, y);
 
         public static double Round(double a)
         {
@@ -74,6 +92,187 @@ namespace system
 
         public static void OverflowException()
             => throw new System.OverflowException("Arithmetic operation resulted in an overflow.");
+
+        public static double BitDecrement(double a)
+        {
+            // java.lang.Math.nextDown(double)
+            if (java.lang.Double.isNaN(a) || a == java.lang.Double.NEGATIVE_INFINITY)
+                return a;
+            if (a == 0.0)
+                return -java.lang.Double.MIN_VALUE;
+            return java.lang.Double.longBitsToDouble(
+                            java.lang.Double.doubleToRawLongBits(a) +
+                                           ((a > 0.0) ? -1L : 1L));
+        }
+
+        public static double BitIncrement(double a)
+        {
+            // java.lang.Math.nextUp(double)
+            if (java.lang.Double.isNaN(a) || a == java.lang.Double.POSITIVE_INFINITY)
+                return a;
+            a += 0.0;
+            return java.lang.Double.longBitsToDouble(
+                            java.lang.Double.doubleToRawLongBits(a) +
+                                           ((a >= 0.0) ? 1L : -1L));
+        }
+
+        public static double MaxMagnitude(double x, double y)
+        {
+            var ax = java.lang.Math.abs(x);
+            var ay = java.lang.Math.abs(y);
+            return (   (ax > ay)
+                     || (ax == ay && x >= 0.0)
+                     || java.lang.Double.isNaN(ax)) ? x : y;
+        }
+
+        public static double MinMagnitude(double x, double y)
+        {
+            var ax = java.lang.Math.abs(x);
+            var ay = java.lang.Math.abs(y);
+            return (   (ax < ay)
+                     || (ax == ay && x < 0.0)
+                     || java.lang.Double.isNaN(ax)) ? x : y;
+        }
+
+        public static double   Log(double a) => java.lang.Math.log(a);
+        public static double Log10(double a) => java.lang.Math.log10(a);
+        public static double  Log2(double a) => java.lang.Math.log(a) / java.lang.Math.log(2.0);
+        public static int    ILogB(double a) => (int) (java.lang.Math.log(a) / java.lang.Math.log(2.0));
+
+        public static double Log(double a, double b)
+        {
+            if (java.lang.Double.isNaN(a))
+                return a;
+            if (java.lang.Double.isNaN(b))
+                return b;
+            if (    (b == 1.0)
+                 || (    (a != 1.0)
+                      && (    b == 0.0
+                           || b == java.lang.Double.POSITIVE_INFINITY)))
+                return java.lang.Double.NaN;
+            return java.lang.Math.log(a) / java.lang.Math.log(b);
+        }
+
+    }
+
+
+
+    public static class MathF
+    {
+        public static int   Sign(float a)               => (int) java.lang.Math.signum(a);
+        public static float  Abs(float a)               => (a < 0) ? -a : a;
+        public static float  Min(float a, float b)      => (a <= b) ? a : b;
+        public static float  Max(float a, float b)      => (a >= b) ? a : b;
+
+        public static float   Sin(float a) => (float) java.lang.Math.sin(a);
+        public static float  Sinh(float a) => (float) java.lang.Math.sinh(a);
+        public static float   Cos(float a) => (float) java.lang.Math.cos(a);
+        public static float  Cosh(float a) => (float) java.lang.Math.cosh(a);
+        public static float   Tan(float a) => (float) java.lang.Math.tan(a);
+        public static float  Tanh(float a) => (float) java.lang.Math.tanh(a);
+
+        public static float  Asin(float a) => (float) java.lang.Math.asin(a);
+        public static float Asinh(float a) => (float)
+            java.lang.Math.log(a + java.lang.Math.sqrt((double) a * a + 1.0));
+        public static float  Acos(float a) => (float) java.lang.Math.acos(a);
+        public static float Acosh(float a) => (float)
+            java.lang.Math.log(a + java.lang.Math.sqrt((double) a * a - 1.0));
+        public static float  Atan(float a) => (float) java.lang.Math.atan(a);
+        public static float Atan2(float x, double y) => (float) java.lang.Math.atan2(x, y);
+        public static float Atanh(float a) =>
+            (float) java.lang.Math.log((1 + a) / (1 - a)) * 0.5f;
+
+        public static float Cbrt(float a) => (float) java.lang.Math.cbrt(a);
+        public static float Exp(float a) => (float) java.lang.Math.exp(a);
+        public static float Pow(float a, float b) => (float) java.lang.Math.pow(a, b);
+        public static float Sqrt(float a) => (float) java.lang.Math.sqrt(a);
+        public static float ScaleB(float x, int n) => (float) java.lang.Math.scalb(x, n);
+
+        public static float Ceiling(float a) => (float) java.lang.Math.ceil(a);
+        public static float Floor(float a) => (float) java.lang.Math.floor(a);
+        public static float IEEERemainder(float x, float y) =>
+                (float) java.lang.Math.IEEEremainder(x, y);
+        public static float CopySign(float x, float y) => java.lang.Math.copySign(x, y);
+
+        public static float Round(float a)
+        {
+            // java round clamps the values to Long.MIN_VALUE .. Long.MAX_VALUE
+            // so we have to use floor rather than round
+            if (a > System.Int64.MaxValue)
+                return (float) java.lang.Math.floor(a + 0.5);
+            else if (a < System.Int64.MinValue)
+                return (float) java.lang.Math.floor(a - 0.5);
+            else
+                return (float) java.lang.Math.round(a);
+        }
+
+        public static float Truncate(float a)
+        {
+            if (! (java.lang.Float.isInfinite(a) || java.lang.Float.isNaN(a)))
+                a = (float) ((long) a);
+            return a;
+        }
+
+        public static float BitDecrement(float a)
+        {
+            // java.lang.Math.nextDown(float)
+            if (java.lang.Float.isNaN(a) || a == java.lang.Float.NEGATIVE_INFINITY)
+                return a;
+            if (a == 0.0f)
+                return -java.lang.Float.MIN_VALUE;
+            return java.lang.Float.intBitsToFloat(
+                            java.lang.Float.floatToRawIntBits(a) +
+                                           ((a > 0.0f) ? -1 : 1));
+        }
+
+        public static float BitIncrement(float a)
+        {
+            // java.lang.Math.nextUp(float)
+            if (java.lang.Float.isNaN(a) || a == java.lang.Float.POSITIVE_INFINITY)
+                return a;
+            a += 0.0f;
+            return java.lang.Float.intBitsToFloat(
+                            java.lang.Float.floatToRawIntBits(a) +
+                                           ((a >= 0.0f) ? 1 : -1));
+        }
+
+        public static float MaxMagnitude(float x, float y)
+        {
+            var ax = java.lang.Math.abs(x);
+            var ay = java.lang.Math.abs(y);
+            return (   (ax > ay)
+                     || (ax == ay && x >= 0.0f)
+                     || java.lang.Float.isNaN(ax)) ? x : y;
+        }
+
+        public static float MinMagnitude(float x, float y)
+        {
+            var ax = java.lang.Math.abs(x);
+            var ay = java.lang.Math.abs(y);
+            return (   (ax < ay)
+                     || (ax == ay && x < 0.0f)
+                     || java.lang.Float.isNaN(ax)) ? x : y;
+        }
+
+        public static float   Log(float a) => (float) java.lang.Math.log(a);
+        public static float Log10(float a) => (float) java.lang.Math.log10(a);
+        public static float  Log2(float a) => (float) (java.lang.Math.log(a) / java.lang.Math.log(2.0));
+        public static int   ILogB(float a) => (int) (java.lang.Math.log(a) / java.lang.Math.log(2.0));
+
+        public static float Log(float a, float b)
+        {
+            if (java.lang.Float.isNaN(a))
+                return a;
+            if (java.lang.Float.isNaN(b))
+                return b;
+            if (    (b == 1.0f)
+                 || (    (a != 1.0f)
+                      && (    b == 0.0f
+                           || b == java.lang.Float.POSITIVE_INFINITY)))
+                return java.lang.Float.NaN;
+            return (float) (java.lang.Math.log(a) / java.lang.Math.log(b));
+        }
+
     }
 
 }

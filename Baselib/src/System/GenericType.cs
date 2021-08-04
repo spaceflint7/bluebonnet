@@ -89,7 +89,7 @@ namespace system
 
                 if (! (    proxyType is RuntimeType proxyRuntimeType
                         && proxyRuntimeType.IsCastableToGenericInterface(castToType,
-                                (parentObject is system.Array.ProxySyncRoot parentArray)    )))
+                                (parentObject is system.Array.ProxySyncRoot)    )))
                 {
                     return null;
                 }
@@ -183,8 +183,8 @@ namespace system
 
         public static void ThrowInvalidCastException(object objToCast, System.Type castToType)
         {
-            string msg = "Unable to cast object of type '" + objToCast.GetType().Name
-                       + "' to type '" + castToType.Name + "'.";
+            string msg = "Unable to cast object of type '" + objToCast.GetType()
+                       + "' to type '" + castToType + "'.";
             throw new InvalidCastException(msg);
         }
 
@@ -200,7 +200,19 @@ namespace system
         // this is a marker interface used by the system.RuntimeType constructor
         // to identify generic types.  this is implemented by interface types;
         // class types implement IGenericObject, which derives from this type.
+
+        // it also makes it easy to specify ProGuard rules for Android 'R8':
+
+        // -keepclassmembers class * implements system.IGenericEntity {
+        //     public static final java.lang.String ?generic?variance;
+        //     public static final *** ?generic?info?class;
+        //     private system.RuntimeType ?generic?type;
+        //     public static final *** ?generic?info?method (...);
+        //     <init>(...);
+        // }
     }
+
+
 
     interface IGenericObject : IGenericEntity
     {

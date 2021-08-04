@@ -28,6 +28,7 @@ namespace SpaceFlint.CilToJava
         internal JavaStackMap stackMap;
 
         internal int lineNumber;
+        internal int numCastableInterfaces;
 
 
 
@@ -51,8 +52,9 @@ namespace SpaceFlint.CilToJava
                 o.defMethodBody = defMethod.Body;
                 o.newMethod = newMethod;
                 o.method = myMethod;
+                o.numCastableInterfaces = numCastableInterfaces;
 
-                o.Process(numCastableInterfaces);
+                o.Process();
             }
             catch (Exception e)
             {
@@ -77,7 +79,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        void Process(int numCastableInterfaces)
+        void Process()
         {
             code = newMethod.Code = new JavaCode(newMethod);
             var oldLabel = code.SetLabel(0xFFFF);
@@ -86,7 +88,7 @@ namespace SpaceFlint.CilToJava
             arrays = new CodeArrays(code, locals);
             exceptions = new CodeExceptions(defMethodBody, code, locals);
 
-            InsertMethodInitCode(numCastableInterfaces);
+            InsertMethodInitCode();
 
             code.SetLabel(oldLabel);
 
@@ -101,7 +103,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        void InsertMethodInitCode(int numCastableInterfaces)
+        void InsertMethodInitCode()
         {
             if (method.IsStatic)
             {
@@ -135,7 +137,7 @@ namespace SpaceFlint.CilToJava
 
                 // init the array of generic interfaces
                 InterfaceBuilder.InitInterfaceArrayField(
-                                    method.DeclType, numCastableInterfaces, code);
+                            method.DeclType, numCastableInterfaces, code, 0);
 
                 // in any constructor, we want to allocate boxed instance fields
                 ValueUtil.InitializeInstanceFields(newMethod.Class, method.DeclType,

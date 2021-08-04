@@ -763,6 +763,8 @@ namespace SpaceFlint.CilToJava
             indexLocalVars1 += indexLocalVars0;*/
             int resetLength = resetLocals.Length;
 
+            bool canBreakEarly = true;
+
             var inst = targetInst;
             while (inst != branchInst)
             {
@@ -792,6 +794,29 @@ namespace SpaceFlint.CilToJava
                     // 'ceq'-type instructions, see also method Compare() above
                     stackMap.ResetLocalsInFrame(
                                         (ushort) (inst.Offset + 1), resetLocals);
+                }
+
+                // if we hit a 'return' or 'throw', then we can (and should)
+                // break early, to minimize the area of effect, and the risk
+                // of breaking code between L.A and L.C.  (consider that a
+                // .Net compiler may generate code between labels L.A and L.C
+                // that expects the local to be valid.)
+
+                var flowControl = inst.OpCode.FlowControl;
+
+                if (    flowControl == Mono.Cecil.Cil.FlowControl.Branch
+                     || flowControl == Mono.Cecil.Cil.FlowControl.Cond_Branch)
+                {
+                    // indicate that we see non-sequential control flow
+                    canBreakEarly = false;
+                }
+                else if (    canBreakEarly
+                          && (    flowControl == Mono.Cecil.Cil.FlowControl.Return
+                               || flowControl == Mono.Cecil.Cil.FlowControl.Throw))
+                {
+                    // if we only saw sequential control flow, then we can
+                    // break early as soon as we see a 'return' or a 'throw'
+                    break;
                 }
 
                 inst = inst.Next;

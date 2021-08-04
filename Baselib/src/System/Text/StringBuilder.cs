@@ -143,6 +143,13 @@ namespace system.text
             return this;
         }
 
+        public StringBuilder Append(object value)
+        {
+            if (value != null)
+                sb.append(value.ToString());
+            return this;
+        }
+
         public int Capacity
         {
             get => sb.capacity();

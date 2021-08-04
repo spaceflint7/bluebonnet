@@ -383,6 +383,20 @@ namespace Tests
             {
                 Console.WriteLine("Caught exception " + e.GetType());
             }
+
+            // test generic cast
+
+            var tupleArray = new Tuple<int,string>[3] {
+                new Tuple<int,string>(1, "one"),
+                new Tuple<int,string>(2, "two"),
+                new Tuple<int,string>(3, "three"),
+            };
+            var tupleEnum =
+                ((System.Collections.Generic.IEnumerable<Tuple<int,string>>) tupleArray)
+                    .GetEnumerator();
+            while (tupleEnum.MoveNext())
+                System.Console.Write(tupleEnum.Current);
+            System.Console.WriteLine();
         }
 
         void TestValue(bool selector)
@@ -425,6 +439,21 @@ namespace Tests
             list.Add(arr1);
             var arr2 = list.ToArray();
             PrintArray(arr2[0]);
+
+            var arr3 = new Guid[] {
+                new Guid("33333333333333333333333333333333"),
+                new Guid("22222222222222222222222222222222"),
+                new Guid("11111111111111111111111111111111"),
+            };
+            System.Array.Sort(arr3, new MyComparer<Guid>());
+            PrintArray(arr3);
+        }
+
+        public class MyComparer<T> : System.Collections.Generic.IComparer<T>
+                          where T  : System.IComparable<T>
+        {
+            public int Compare(T x, T y) => x.CompareTo(y);
+            object Clone() => MemberwiseClone();
         }
 
     }

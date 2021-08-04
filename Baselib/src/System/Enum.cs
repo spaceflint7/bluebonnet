@@ -263,22 +263,26 @@ namespace system
 
             static string FormatNames(java.lang.Class cls, long v, bool asFlags)
             {
+                var enumLiteralFlags = (   java.lang.reflect.Modifier.PUBLIC
+                                         | java.lang.reflect.Modifier.STATIC
+                                         | java.lang.reflect.Modifier.FINAL);
+
                 var fields = cls.getDeclaredFields();
                 int n = fields.Length;
 
                 var s = asFlags
-                      ? ToStringMulti(v, fields, n)
-                      : ToStringSingle(v, fields, n);
+                      ? ToStringMulti(v, fields, n, enumLiteralFlags)
+                      : ToStringSingle(v, fields, n, enumLiteralFlags);
                 return s ?? java.lang.Long.toString(v);
             }
 
-            static string ToStringSingle(long v, java.lang.reflect.Field[] fields, int n)
+            static string ToStringSingle(long v, java.lang.reflect.Field[] fields, int n,
+                                         int enumLiteralFlags)
             {
                 for (int i = 0; i < n; i++)
                 {
                     var f = fields[i];
-                    if (f.getModifiers() == (   java.lang.reflect.Modifier.PUBLIC
-                                              | java.lang.reflect.Modifier.STATIC))
+                    if (f.getModifiers() == enumLiteralFlags)
                     {
                         f.setAccessible(true);
                         if (f.getLong(null) == v)
@@ -288,7 +292,8 @@ namespace system
                 return null;
             }
 
-            static string ToStringMulti(long v, java.lang.reflect.Field[] fields, int n)
+            static string ToStringMulti(long v, java.lang.reflect.Field[] fields, int n,
+                                        int enumLiteralFlags)
             {
                 var v0 = v;
                 var sb = new java.lang.StringBuilder();
@@ -297,8 +302,7 @@ namespace system
                 for (int i = 0; i < n; i++)
                 {
                     var f = fields[i];
-                    if (f.getModifiers() == (   java.lang.reflect.Modifier.PUBLIC
-                                              | java.lang.reflect.Modifier.STATIC))
+                    if (f.getModifiers() == enumLiteralFlags)
                     {
                         f.setAccessible(true);
                         var fv = f.getLong(null);

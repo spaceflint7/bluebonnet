@@ -46,6 +46,7 @@ System.IWellKnownStringEqualityComparer
 System.DivideByZeroException
 
 System.FormatException
+System.FormattableString
 System.Func`*
 
 System.ICloneable
@@ -89,6 +90,7 @@ System.Collections.ObjectModel.ReadOnlyCollection`1
 System.Collections.HashHelpers
 
 System.Collections.Generic.Comparer`1
+System.Collections.Generic.IComparer`1
 System.Collections.Generic.ComparisonComparer`1
 System.Collections.Generic.ObjectComparer`1
 System.Collections.Generic.GenericComparer`1
@@ -189,13 +191,18 @@ System.Reflection.CallingConventions
 System.Reflection.IntrospectionExtensions
 System.Reflection.IReflect
 System.Reflection.MemberInfo
+System.Reflection.FieldAttributes
 System.Reflection.FieldInfo
+System.Reflection.EventAttributes
 System.Reflection.EventInfo
 System.Reflection.ParameterAttributes
 System.Reflection.ParameterInfo
+System.Reflection.PropertyAttributes
 System.Reflection.PropertyInfo
+System.Reflection.MethodAttributes
 System.Reflection.MethodInfo
 System.Reflection.ConstructorInfo
+System.Reflection.TypeAttributes
 System.Reflection.TypeInfo
 System.Reflection.MemberFilter
 System.Reflection.Missing
@@ -204,7 +211,6 @@ System.Reflection.InterfaceMapping
 System.Reflection.InvalidFilterCriteriaException
 System.Reflection.IReflectableType
 System.Reflection.ParameterModifier
-System.Reflection.TypeAttributes
 System.Reflection.TypeFilter
 System.Reflection.TargetParameterCountException
 System.Reflection.TargetInvocationException
@@ -229,6 +235,7 @@ System.Runtime.CompilerServices.AsyncTaskCache
 System.Runtime.CompilerServices.AsyncTaskMethodBuilder
 System.Runtime.CompilerServices.AsyncTaskMethodBuilder`*
 System.Runtime.CompilerServices.AsyncVoidMethodBuilder
+System.Runtime.CompilerServices.FormattableStringFactory
 System.Runtime.CompilerServices.IAsyncStateMachine
 System.Runtime.CompilerServices.TaskAwaiter
 System.Runtime.CompilerServices.TaskAwaiter`*

@@ -74,7 +74,6 @@ namespace SpaceFlint.CilToJava
                     // the RuntimeType constructor in baselib uses IGenericEntity
                     // marker interface to identify generic classes.  note that
                     // real generic types implement IGenericObject -> IGenericEntity.
-
                     theClass.AddInterface("system.IGenericEntity");
                 }
 
@@ -124,14 +123,14 @@ namespace SpaceFlint.CilToJava
                     // if the class implements a generic interface for multiple types,
                     // then we need a method suffix to differentiate between the methods.
                     // see also:  CilMethod::InsertMethodNamePrefix
-                    string methodSuffix = "";
+                    /*string methodSuffix = "";
                     foreach (var genericType in ifc.GenericTypes)
-                        methodSuffix += "--" + CilMethod.GenericParameterSuffixName(genericType);
+                        methodSuffix += "--" + CilMethod.GenericParameterSuffixName(genericType);*/
 
                     foreach (var ifcMethod in ifc.Methods)
                     {
                         // build proxy classes:  proxy sub-class -> this class
-                        BuildGenericProxy(ifcMethod, methodSuffix, intoType, theMethods, ifcClass);
+                        BuildGenericProxy(ifcMethod, /*methodSuffix,*/ intoType, theMethods, ifcClass);
                     }
                 }
             }
@@ -147,7 +146,8 @@ namespace SpaceFlint.CilToJava
                 // reference as a parameter and initializes the instance field.
 
                 var newClass = CilMain.CreateInnerClass(parentClass,
-                                    parentClass.Name + "$$generic" + ifcNumber.ToString());
+                                    parentClass.Name + "$$generic" + ifcNumber.ToString(),
+                                    markGenericEntity: true);
 
                 var fld = new JavaField();
                 fld.Name = ParentFieldName;
@@ -199,7 +199,7 @@ namespace SpaceFlint.CilToJava
         //
 
         public static void InitInterfaceArrayField(CilType toType, int numCastableInterfaces,
-                                                  JavaCode code)
+                                                  JavaCode code, int objectIndex)
         {
             // if a type has castable interface (as counted by CastableInterfaceCount),
             // then we need to initialize the helper array field, for use by the
@@ -208,8 +208,14 @@ namespace SpaceFlint.CilToJava
             if (numCastableInterfaces == 0)
                 return;
 
-            code.NewInstruction(0x19 /* aload */, null, (int) 0);
+            // objectIndex specifies the local index for the object reference,
+            // e.g. 0 for the 'this' object, or -1 for top of stack.
+            if (objectIndex == -1)
+                code.NewInstruction(0x59 /* dup */, null, null);
+            else
+                code.NewInstruction(0x19 /* aload */, null, objectIndex);
             code.StackMap.PushStack(toType);
+
             code.NewInstruction(0xBB /* new */, AtomicReferenceArrayType, null);
             code.StackMap.PushStack(AtomicReferenceArrayType);
             code.NewInstruction(0x59 /* dup */, null, null);
@@ -381,7 +387,7 @@ namespace SpaceFlint.CilToJava
 
 
 
-        public static void BuildGenericProxy(CilInterfaceMethod ifcMethod, string methodSuffix,
+        public static void BuildGenericProxy(CilInterfaceMethod ifcMethod, /*string methodSuffix,*/
                                              CilType intoType, List<CilInterfaceMethod> classMethods,
                                              JavaClass ifcClass)
         {
@@ -408,9 +414,23 @@ namespace SpaceFlint.CilToJava
                     {
                         // more than one method may match, if a derived type overrides
                         // or hides a method that also exists in a base type.  but the
-                        // derived (primary) type methods always come first.
+                        // derived (primary) type methods always come first
                         if (targetMethod == null)
                             targetMethod = clsMethod.Method;
+
+                        // if a second method matches, and the set of generic types
+                        // in its signature exactly matches the interface method we
+                        // are looking for, then prefer this method.  when a class
+                        // implements same-name methods from multiple interfaces,
+                        // this is needed to pick the right method.
+                        // see also ResolvedGenericTypes in CilInterfaceMethod.
+
+                        else if (    clsMethod.ResolvedGenericTypes.Length != 0
+                                  && clsMethod.ResolvedGenericTypes
+                                            == ifcMethod.ResolvedGenericTypes)
+                        {
+                            targetMethod = clsMethod.Method;
+                        }
                     }
                 }
             }

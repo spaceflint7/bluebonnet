@@ -12,6 +12,7 @@ namespace system.reflection
     {
         [java.attr.RetainType] public java.lang.reflect.Field JavaField;
         [java.attr.RetainType] public system.RuntimeType reflectedType;
+        [java.attr.RetainType] private FieldAttributes cachedAttrs = 0;
 
         //
         // constructor
@@ -30,69 +31,83 @@ namespace system.reflection
 
         public static FieldInfo[] GetFields(BindingFlags bindingAttr, RuntimeType initialType)
         {
-            var list = new System.Collections.Generic.List<FieldInfo>();
+            var list = new java.util.ArrayList();
 
-            BindingFlagsIterator.Run(bindingAttr, initialType, MemberTypes.Field,
+            BindingFlagsIterator.Run(bindingAttr & ~BindingFlags.GetField,
+                                     initialType, MemberTypes.Field,
                                      (javaAccessibleObject) =>
             {
                 var javaField = (java.lang.reflect.Field) javaAccessibleObject;
                 javaField.setAccessible(true);
-                list.Add(new RuntimeFieldInfo(javaField, initialType));
+                list.add(new RuntimeFieldInfo(javaField, initialType));
                 return true;
             });
 
-            return list.ToArray();
+            return (RuntimeFieldInfo[]) list.toArray(new RuntimeFieldInfo[0]);
         }
+
+        //
+        //
+        //
 
         public override System.Type FieldType
             => system.RuntimeType.GetType(JavaField.getType());
 
-        //
-        //
-        //
-
         public override object GetValue(object obj)
-            => throw new PlatformNotSupportedException();
+            => system.RuntimeType.UnboxJavaReturnValue(JavaField.get(obj));
 
         public override void SetValue(object obj, object value, BindingFlags invokeAttr,
                                       Binder binder, CultureInfo culture)
             => throw new PlatformNotSupportedException();
 
-        public override System.Reflection.FieldAttributes Attributes
-            => throw new PlatformNotSupportedException();
+        public override FieldAttributes Attributes
+        {
+            get
+            {
+                var attrs = cachedAttrs;
+                if (attrs == 0)
+                {
+                    int modifiers = JavaField.getModifiers();
+                    if ((modifiers & java.lang.reflect.Modifier.PUBLIC) != 0)
+                        attrs |= FieldAttributes.Public;
+                    if ((modifiers & java.lang.reflect.Modifier.PRIVATE) != 0)
+                        attrs |= FieldAttributes.Private;
+                    if ((modifiers & java.lang.reflect.Modifier.PROTECTED) != 0)
+                        attrs |= FieldAttributes.Family;
+                    if ((modifiers & java.lang.reflect.Modifier.TRANSIENT) != 0)
+                        attrs |= FieldAttributes.NotSerialized;
 
-        public override System.Type DeclaringType
-            => throw new PlatformNotSupportedException();
+                    if ((modifiers & java.lang.reflect.Modifier.STATIC) != 0)
+                    {
+                        attrs |= FieldAttributes.Static;
+                        if (    ((modifiers & java.lang.reflect.Modifier.FINAL) != 0)
+                             && JavaField.getType().isPrimitive()
+                             && JavaField.get(null) != null)
+                        {
+                            attrs |= FieldAttributes.Literal;
+                        }
+                    }
 
-        public override System.Type ReflectedType
-            => throw new PlatformNotSupportedException();
+                    cachedAttrs = attrs;
+                }
+                return attrs;
+            }
+        }
+
+        public override Type ReflectedType => reflectedType;
+
+        public override Type DeclaringType
+            => system.RuntimeType.GetType(JavaField.getDeclaringClass());
 
         public override string Name => JavaField.getName();
 
         public override object GetRawConstantValue()
         {
-            if ((JavaField.getModifiers() & java.lang.reflect.Modifier.STATIC) != 0)
+            if (0 != (JavaField.getModifiers() & (   java.lang.reflect.Modifier.STATIC
+                                                   | java.lang.reflect.Modifier.FINAL))
+                && JavaField.getType().isPrimitive())
             {
-                var value = JavaField.get(null);
-                switch (value)
-                {
-                    case java.lang.Boolean boolBox:
-                        return system.Boolean.Box(boolBox.booleanValue() ? 1 : 0);
-                    case java.lang.Byte byteBox:
-                        return system.SByte.Box(byteBox.byteValue());
-                    case java.lang.Character charBox:
-                        return system.Char.Box(charBox.charValue());
-                    case java.lang.Short shortBox:
-                        return system.Int16.Box(shortBox.shortValue());
-                    case java.lang.Integer intBox:
-                        return system.Int32.Box(intBox.intValue());
-                    case java.lang.Long longBox:
-                        return system.Int64.Box(longBox.longValue());
-                    case java.lang.Float floatBox:
-                        return system.Single.Box(floatBox.floatValue());
-                    case java.lang.Double doubleBox:
-                        return system.Double.Box(doubleBox.doubleValue());
-                }
+                return GetValue(null);
             }
             throw new System.NotSupportedException();
         }

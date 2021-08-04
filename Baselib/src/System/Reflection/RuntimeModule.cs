@@ -13,7 +13,7 @@ namespace system.reflection
     {
         [java.attr.RetainType] public java.security.ProtectionDomain JavaDomain;
 
-        public override System.Type[] GetTypes() => new System.Type[0];
+        public override System.Type[] GetTypes() => system.RuntimeType.EmptyTypeArray;
 
         public MetadataImport MetadataImport => _MetadataImport;
         public StructLayoutAttribute StructLayoutAttribute => _StructLayoutAttribute;

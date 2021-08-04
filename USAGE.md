@@ -31,26 +31,51 @@ If the input assembly references other assemblies, they are searched in (1) the 
 
 .NET C# code which references Java declarations (using a reference assembly, as described above) may use the following syntax to refer to a Java class:
 
-    (java.lang.Class) typeof(sometype)
+    C#:     (java.lang.Class) typeof(sometype)
+
+    F#:     java.lang.Class.op_Explicit(typeof<sometype>) (F#)
 
 where `sometype` can be any imported Java class, or non-generic .NET type.
 
-#### Access to a Java class object
+#### Delegates to Java functional interface
 
 Java functional interfaces are supported via an artificial delegate, for example:
 
-    java.lang.Thread.setDefaultUncaughtExceptionHandler(
-            ( (java.lang.Thread.UncaughtExceptionHandler.Delegate) (
+    C#:     java.lang.Thread.setDefaultUncaughtExceptionHandler(
+                ( (java.lang.Thread.UncaughtExceptionHandler.Delegate) (
                     (java.lang.Thread p1, java.lang.Throwable p2) =>
-                            { .... }) ).AsInterface() );
+                            { ...code... }) ).AsInterface() );
 
-In this example, `java.lang.Thread.UncaughtExceptionHandler` is the functional interface, which gets an artificial delegate named `Delegate` as a nested type.  The C# lambda is cast to this delegate, and then the `AsInterface` method is invoked, to convert the delegate to a Java interface.
+    F#:     java.lang.Thread.setDefaultUncaughtExceptionHandler(
+                (java.lang.Thread.UncaughtExceptionHandler.Delegate (
+                    fun (p1: java.lang.Thread) (p2: java.lang.Throwable) ->
+                        ...code... )).AsInterface())
+
+In this example, `java.lang.Thread.UncaughtExceptionHandler` is the functional interface, which gets an artificial delegate named `Delegate` as a nested type.  The lambda is cast to this delegate, and then the `AsInterface` method is invoked, to convert the delegate to a Java interface.
+
+#### Java interfaces in F# code
+
+F# generates [explicit method overrides](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/interfaces/explicit-interface-implementation) for implemented interfaces, which is not compatible with interfaces imported from Java.  To work around this, a Java interface must be implemented twice in an F# type:
+
+    type MyType () =
+
+        // Declare the interface so that it is listed as implemented by the type.
+        // The actual method implementations are discarded.
+
+        interface java.lang.Thread.UncaughtExceptionHandler with
+            [<java.attr.Discard>] member this.uncaughtException (_, _) = ()
+
+        // Provide implicit implementations for the necessary methods.
+        // Parameters types must match the interface methods.
+
+        [<java.attr.RetainName>]
+        member this.uncaughtException (p1: java.lang.Thread, p2: java.lang.Throwable) = ()
 
 # Attributes
 
 Bluebonnet recognizes the following attributes:
 
-- `[java.attr.DiscardAttribute]` on a top-level type (class/struct/interface/delegate) to exclude the type from output.  For example, [Baselib/`Object.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/Object.cs) declares a `java.lang.Object` type with a `getClass` method, but there is no need to actually emit a Java class for `java.lang.Object`.  For an example of this outside of Baselib, see [BNA/`Import.cs`](https://github.com/spaceflint7/bna/blob/master/BNA/src/Import.cs).
+- `[java.attr.DiscardAttribute]` on a top-level type (class/struct/interface/delegate) or on a class method to exclude the type or method from output.  For example, [Baselib/`Object.cs`](https://github.com/spaceflint7/bluebonnet/blob/master/Baselib/src/System/Object.cs) declares a `java.lang.Object` type with a `getClass` method, but there is no need to actually emit a Java class for `java.lang.Object`.  For an example of this outside of Baselib, see [BNA/`Import.cs`](https://github.com/spaceflint7/bna/blob/master/BNA/src/Import.cs).
 
 - `[java.attr.RetainTypeAttribute]` on a field data member indicates not to box the field.  This is useful for fields that participate in a code hot path, as it eliminates double-references when accessing the field.  It should not be used with fields which may be referenced directly from code outside their containing assembly.
 

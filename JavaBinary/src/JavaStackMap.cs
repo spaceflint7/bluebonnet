@@ -589,7 +589,11 @@ namespace SpaceFlint.JavaBinary
                 offset = (ushort) (offset - (lastOffset + 1));
             item.deltaOffset = offset;
 
+            // discard any trailing 'top' elements for out-of-scape locals
             int numLocals = frame.locals.Count;
+            while (numLocals > 0 && frame.locals[numLocals - 1].Equals(Top))
+                numLocals--;
+
             var localsList = new List<JavaAttribute.StackMapTable.Slot>(numLocals);
             for (int i = 0; i < numLocals; i += frame.locals[i].Category)
                 localsList.Add(JavaTypeToVerificationType(frame.locals[i], wtr));

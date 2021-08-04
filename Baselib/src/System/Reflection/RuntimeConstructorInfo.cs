@@ -127,7 +127,7 @@ namespace system.reflection
                                       object[] parameters, CultureInfo culture)
         {
             if (parameters == null)
-                parameters = new object[0];
+                parameters = system.RuntimeType.EmptyObjectArray;
             int numParameters = parameters.Length;
 
             if (HasUniqueArg)

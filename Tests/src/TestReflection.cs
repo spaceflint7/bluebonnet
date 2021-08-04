@@ -98,6 +98,9 @@ namespace Tests
             DisplayGenericType(tT, "Type parameter T from Base<T>");
             //DisplayGenericType(tF, "Field type, G<Derived<V>>");
             DisplayGenericType(tNested, "Nested type in Derived<V>");
+
+            DisplayGenericType(tDerived.GetNestedType("Nested"),
+                                        "Nested type in Derived<V> (2)");
         }
 
         public static void DisplayGenericType(Type t, string caption)

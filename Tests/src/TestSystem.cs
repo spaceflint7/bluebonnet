@@ -13,6 +13,7 @@ namespace Tests
         {
             TestSuppressGC();
             TestUnhandledException();
+            TestUsing();
         }
 
         //
@@ -44,6 +45,26 @@ namespace Tests
             //throw new Exception();
             void Handler(object sender, UnhandledExceptionEventArgs args)
                 => Console.WriteLine("In Unhandled Exception Handler");
+        }
+
+        //
+        // TestUnhandledException
+        //
+
+        public class MyDisposable : System.IDisposable
+        {
+            public void Dispose() => Console.Write("Disposed ");
+            public void close() => Console.Write("Closing ");
+        }
+
+        void TestUsing()
+        {
+            using (var myDisposable = new MyDisposable())
+            {
+                myDisposable.Dispose();
+                myDisposable.close();
+            }
+            Console.WriteLine();
         }
 
     }

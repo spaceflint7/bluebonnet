@@ -50,7 +50,7 @@ namespace system.reflection
                 string originalName = javaMethod.getName();
                 var compareName = RuntimeMethodInfo.AdjustedMethodName(originalName);
 
-                if (name == compareName)
+                if (name == compareName && CompareParameters(javaMethod, types))
                 {
                     javaMethod.setAccessible(true);
                     var jmodifiers = javaMethod.getModifiers();
@@ -63,6 +63,26 @@ namespace system.reflection
             });
 
             return foundMethod;
+
+
+
+            #pragma warning disable 0436
+            static bool CompareParameters(java.lang.reflect.Method javaMethod, Type[] types)
+            {
+                if (types == null)
+                    return true;
+                var paramTypes = javaMethod.getParameterTypes();
+                if (types.Length != paramTypes.Length)
+                    return false;
+                for (int i = 0; i < paramTypes.Length; i++)
+                {
+                    if (! object.ReferenceEquals(
+                            types[i], system.RuntimeType.GetType(paramTypes[i])))
+                        return false;
+                }
+                return true;
+            }
+            #pragma warning restore 0436
         }
 
         //
@@ -76,8 +96,6 @@ namespace system.reflection
                 throw new PlatformNotSupportedException("non-null binder");
             if (callConvention != CallingConventions.Any)
                 throw new PlatformNotSupportedException("calling convention must be Any");
-            if (types != null && types.Length != 0)
-                throw new PlatformNotSupportedException("non-null types");
             if (modifiers != null)
                 throw new PlatformNotSupportedException("non-null modifiers");
         }
@@ -337,7 +355,7 @@ namespace system.reflection
         }
 
         //
-        //
+        // GetParameters
         //
 
         public override ParameterInfo[] GetParameters()
