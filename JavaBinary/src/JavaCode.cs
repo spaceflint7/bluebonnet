@@ -83,6 +83,11 @@ namespace SpaceFlint.JavaBinary
 
 
 
+        public static bool IsBranchOpcode (byte op)
+            => (instOperandType[op] & 0x40) == 0x40;
+
+
+
         static JavaCode()
         {
             instOperandType = new byte[256];

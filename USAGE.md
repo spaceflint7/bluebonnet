@@ -109,7 +109,7 @@ Here are some known differences, deficiencies and incompatibilities of the Blueb
 
 - Reflection information for generic types depends on the existence of the `Signature` attribute in java class files.
 
-- `BeforeFieldInit` is not honored; the static initializer for a class will be called at the discretion of the JVM.  if it is a generic class, the static initializer is called when the generic type is first referenced.
+- `BeforeFieldInit` is not honored; the static initializer for a class will be called at the discretion of the JVM.  If it is a generic class, the static initializer is called when the generic type is first referenced.
 
 - The type system is weaker than .NET when it comes to generic types, and in some casts and assignments are permitted between generic objects that differ only in their type arguments.
 

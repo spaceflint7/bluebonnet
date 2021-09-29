@@ -508,9 +508,10 @@ namespace SpaceFlint.CilToJava
                 code.NewInstruction(0x12 /* ldc */, null, -loadIndex - 1);
                 code.StackMap.PushStack(JavaType.IntegerType);
 
-                // call system.RuntimeType.Argument(int typeArgumentIndex)
-                code.NewInstruction(0xB6 /* invokevirtual */, CilType.SystemRuntimeTypeType,
-                    new JavaMethodRef("Argument", CilType.SystemTypeType, JavaType.IntegerType));
+                // call system.RuntimeType.Argument(RuntimeType runtimeType, int typeArgumentIndex)
+                code.NewInstruction(0xB8 /* invokestatic */, CilType.SystemRuntimeTypeType,
+                    new JavaMethodRef("Argument", CilType.SystemTypeType,
+                            CilType.SystemRuntimeTypeType, JavaType.IntegerType));
 
                 code.StackMap.PopStack(CilMain.Where);              // integer
                 code.StackMap.PopStack(CilMain.Where);              // generic type field
@@ -534,58 +535,86 @@ namespace SpaceFlint.CilToJava
 
 
 
-        static void LoadGenericInstance(CilType loadType, List<JavaFieldRef> parameters, JavaCode code)
+        static void LoadGenericInstance_1_2(CilType loadType, int genericCount,
+                                            List<JavaFieldRef> parameters,
+                                            JavaCode code)
         {
-            int count = loadType.GenericParameters.Count;
-            if (count == 1)
-            {
-                // specific handling for the common case of a generic instance
-                // with just one type argument.  if this is a concrete argument,
-                // call GetType(class, class).  if this is a generic argument,
-                // call GetType(class, type).  note that the first class argument
-                // to GetType was alredy inserted by our caller, LoadMaybeGeneric
+            // handling for the case of a generic instance with one or two
+            // type arguments.  each argument, if it is a concrete argument,
+            // call GetType(class, class).  if it is a generic argument,
+            // call GetType(class, type).
+            // note that the first class argument to GetType was alredy
+            // inserted by our caller, LoadMaybeGeneric().
 
+            for (int i = 0; i < genericCount; i++)
+            {
                 var genericMark = CilMain.GenericStack.Mark();
 
                 var (argType, argIndex) = CilMain.GenericStack.Resolve(
-                                            loadType.GenericParameters[0].JavaName);
+                                            loadType.GenericParameters[i].JavaName);
 
                 if (argIndex == 0 && (! argType.HasGenericParameters))
                 {
                     // GetType(java.lang.Class, java.lang.Class)
                     code.NewInstruction(0x12 /* ldc */, argType.AsWritableClass, null);
                     code.StackMap.PushStack(CilType.ClassType);
-                    // second parameter of type java.lang.Class
+                    // second or third parameter of type java.lang.Class
                     parameters.Add(parameters[0]);
                 }
                 else
                 {
                     // GetType(java.lang.Class, system.Type)
                     LoadGeneric(argType, argIndex, code);
-                    // second parameter of type system.Type
+                    // second or third parameter of type system.Type
                     parameters.Add(new JavaFieldRef("", CilType.SystemTypeType));
                 }
 
                 CilMain.GenericStack.Release(genericMark);
             }
+        }
+
+
+
+        static void LoadGenericInstance_3_N(CilType loadType, int genericCount,
+                                            List<JavaFieldRef> parameters,
+                                            JavaCode code)
+        {
+            if (genericCount <= 8)
+            {
+                // handling for the less common case of a generic instace with
+                // less than eight arguments.  we don't check if the provided
+                // type arguments are concrete or generic, and call a GetType()
+                // override for the appropriate number of parameters.
+                // note that the first class argument to GetType was alredy
+                // inserted by our caller, LoadMaybeGeneric().
+
+                for (int i = 0; i < genericCount; i++)
+                {
+                    LoadMaybeGeneric(loadType.GenericParameters[i], code);
+                    // next parameter always has type system.Type
+                    parameters.Add(new JavaFieldRef("", CilType.SystemTypeType));
+                }
+            }
             else
             {
                 // generic handling for the less common case of a generic instace
-                // with more than one argument.  we don't check if the provided
+                // with more than eight arguments.  we don't check if the provided
                 // type arguments are concrete or generic.  we build an array of
                 // system.Type references, and call GetType(class, system.Type[]).
+                // note that the first class argument to GetType was alredy
+                // inserted by our caller, LoadMaybeGeneric().
 
                 var arrayOfType = CilType.SystemTypeType.AdjustRank(1);
                 parameters.Add(new JavaFieldRef("", arrayOfType));
 
-                code.NewInstruction(0x12 /* ldc */, null, count);
+                code.NewInstruction(0x12 /* ldc */, null, genericCount);
                 code.StackMap.PushStack(JavaType.IntegerType);
 
                 code.NewInstruction(0xBD /* anewarray */, CilType.SystemTypeType, null);
                 code.StackMap.PopStack(CilMain.Where);
                 code.StackMap.PushStack(arrayOfType);
 
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < genericCount; i++)
                 {
                     code.NewInstruction(0x59 /* dup */, null, null);
                     code.StackMap.PushStack(arrayOfType);
@@ -631,7 +660,17 @@ namespace SpaceFlint.CilToJava
 
                 if (loadType.HasGenericParameters)
                 {
-                    LoadGenericInstance(loadType, parameters, code);
+                    int genericCount = loadType.GenericParameters.Count;
+                    if (genericCount <= 2)
+                    {
+                        LoadGenericInstance_1_2(loadType, genericCount,
+                                                parameters, code);
+                    }
+                    else
+                    {
+                        LoadGenericInstance_3_N(loadType, genericCount,
+                                                parameters, code);
+                    }
                 }
 
                 code.NewInstruction(0xB8 /* invokestatic */, CilType.SystemRuntimeTypeType,

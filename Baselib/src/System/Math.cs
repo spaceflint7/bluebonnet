@@ -4,6 +4,11 @@ namespace system
 
     public static class Math
     {
+
+        public const double E   = 2.7182818284590451;
+        public const double PI  = 3.1415926535897931;
+        public const double Tau = 6.2831853071795862;
+
         public static int   Sign(sbyte a)               => java.lang.Integer.signum(a);
         public static sbyte  Abs(sbyte a)               => (sbyte) ((a < 0) ? -a : a);
         public static sbyte  Min(sbyte a, sbyte b)      => (a <= b) ? a : b;
@@ -159,6 +164,11 @@ namespace system
 
     public static class MathF
     {
+
+        public const float E   = 2.71828175f;
+        public const float PI  = 3.14159274f;
+        public const float Tau = 6.28318548f;
+
         public static int   Sign(float a)               => (int) java.lang.Math.signum(a);
         public static float  Abs(float a)               => (a < 0) ? -a : a;
         public static float  Min(float a, float b)      => (a <= b) ? a : b;
@@ -178,7 +188,7 @@ namespace system
         public static float Acosh(float a) => (float)
             java.lang.Math.log(a + java.lang.Math.sqrt((double) a * a - 1.0));
         public static float  Atan(float a) => (float) java.lang.Math.atan(a);
-        public static float Atan2(float x, double y) => (float) java.lang.Math.atan2(x, y);
+        public static float Atan2(float x, float y) => (float) java.lang.Math.atan2(x, y);
         public static float Atanh(float a) =>
             (float) java.lang.Math.log((1 + a) / (1 - a)) * 0.5f;
 

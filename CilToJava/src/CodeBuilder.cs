@@ -99,6 +99,8 @@ namespace SpaceFlint.CilToJava
 
             (code.MaxLocals, code.MaxStack) = locals.GetMaxLocalsAndStack();
             locals.TrackUnconditionalBranch(null);
+
+            OptimizeGeneratedCode();
         }
 
 

@@ -999,7 +999,8 @@ namespace SpaceFlint.CilToJava
             //
             // in either case, we want to discard the 'call' instructions
             // (see also ConvertCallToNop() below).  for case (1), we translate
-            // into a call to system.Util.GetType() to obtain a System.Type.
+            // into a call to system.RuntimeType.GetType() to obtain a System.Type,
+            // this is done via a call to LoadMaybeGeneric.
             // for case (2), we convert to a simple 'ldc' instruction.
             //
             // (3)  this instruction is used to load a reference to an array

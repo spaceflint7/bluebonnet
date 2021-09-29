@@ -10,7 +10,7 @@
     <!-- Android SDK path -->
     <AndroidHome Condition="'$(ANDROID_HOME)' != ''">$(ANDROID_HOME)</AndroidHome>
     <AndroidHome Condition="'$(ANDROID_SDK_ROOT)' != ''">$(ANDROID_SDK_ROOT)</AndroidHome>
-    <AndroidJar>$(AndroidHome)/platforms/android-28/android.jar</AndroidJar>
+    <AndroidJar>$(AndroidHome)/platforms/android-30/android.jar</AndroidJar>
     <AndroidBin>$(AndroidHome)/build-tools/30.0.2/</AndroidBin>
   </PropertyGroup>
   <Import Project="..\..\Solution.project" />

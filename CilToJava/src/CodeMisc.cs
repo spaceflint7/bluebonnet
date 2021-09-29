@@ -764,6 +764,86 @@ namespace SpaceFlint.CilToJava
             theClass.Methods.Add(outerMethod);
         }
 
+
+
+        private void OptimizeGeneratedCode ()
+        {
+            var Instructions = code.Instructions;
+            var StackMap = code.StackMap;
+            int n = Instructions.Count;
+
+            //
+            // nop optimization:
+            //
+            // remove any nop instructions that are not a branch target,
+            // and only if there are no exception tables.  note that
+            // removing nops that are a branch target, or nops in a method
+            // with exception tables, would require updating the stack map,
+            // branch instructions and exception tables.
+            //
+
+            var nops = new List<int>();
+
+            bool discardNops =
+                        (code.Exceptions == null || code.Exceptions.Count == 0);
+
+            // constants optimization:
+            //
+            // find occurrences of iconst_0 or iconst_1 followed by i2l
+            // (which must not be a branch target), and convert to lconst_xx
+            //
+
+            for (int i = 0; i < n; i++)
+            {
+                byte op = Instructions[i].Opcode;
+
+                if (op == 0x00 /* nop */)
+                {
+                    // collect this nop only if it is not a branch target
+                    if (! StackMap.HasBranchFrame(Instructions[i].Label))
+                    {
+                        nops.Add(i);
+                    }
+                }
+
+                else if (JavaCode.IsBranchOpcode(op)) // jump inst
+                {
+                    if (Instructions[i].Data is int)
+                    {
+                        // if jump instruction has an explicit byte offset,
+                        // we can't do nop elimination; see FillJumpTargets
+                        // in JavaBinary.JavaCodeWriter
+                        discardNops = false;
+                    }
+                }
+
+                else if (op == 0x85 /* i2l */ && i > 0)
+                {
+                    var prevInst = Instructions[i - 1];
+                    if (    prevInst.Opcode == 0x12 /* ldc */
+                         && prevInst.Data is int intValue
+                         && (intValue == 0 || intValue == 1)
+                         && (! StackMap.HasBranchFrame(
+                                                Instructions[i].Label)))
+                    {
+                        // convert ldc of 0 or 1 into lconst_0 or lconst_1
+                        prevInst.Opcode = (byte) (intValue + 0x09);
+
+                        // convert current instruction to nop,
+                        // and mark to discard it if discarding nops
+                        Instructions[i].Opcode = 0x00; // nop
+                        nops.Add(i);
+                    }
+                }
+            }
+
+            if (discardNops)
+            {
+                for (int i = nops.Count; i-- > 0; )
+                    Instructions.RemoveAt(nops[i]);
+            }
+        }
+
     }
 
 }

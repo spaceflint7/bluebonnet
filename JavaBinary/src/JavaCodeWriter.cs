@@ -12,9 +12,6 @@ namespace SpaceFlint.JavaBinary
         {
             wtr.Where.Push("method body");
 
-            PerformOptimizations();
-            EliminateNops();
-
             int codeLength = FillInstructions(wtr);
             if (codeLength > 0xFFFE)
                 throw wtr.Where.Exception("output method is too large");
@@ -486,7 +483,6 @@ namespace SpaceFlint.JavaBinary
                     if (inst.Data is int intOffset)
                     {
                         // int data is a jump offset that can be calculated immediately
-                        // note that this prevents nop elimination; see EliminateNops
                         intOffset -= offset;
                         inst.Bytes[1] = (byte) (offset >> 8);
                         inst.Bytes[2] = (byte) offset;
@@ -665,76 +661,6 @@ namespace SpaceFlint.JavaBinary
             // four bytes:  with a wide prefix and two bytes for index
 
             return (index <= 3) ? 1 : ((index <= 255) ? 2 : 4);
-        }
-
-
-
-        void PerformOptimizations()
-        {
-            int n = Instructions.Count;
-            var prevInst = Instructions[0];
-            for (int i = 1; i < n; i++)
-            {
-                var currInst = Instructions[i];
-
-                // find occurrences of iconst_0 or iconst_1 followed by i2l
-                // (which must not be a branch target), and convert to lconst_xx
-
-                if (currInst.Opcode == 0x85 /* i2l */)
-                {
-                    if (    prevInst.Opcode == 0x12 /* ldc */
-                         && prevInst.Data is int intValue
-                         && (intValue == 0 || intValue == 1)
-                         && (! StackMap.HasBranchFrame(currInst.Label)))
-                    {
-                        // convert ldc of 0 or 1 into lconst_0 or lconst_1
-                        prevInst.Opcode = (byte) (intValue + 0x09);
-                        currInst.Opcode = 0x00; // nop
-                    }
-                }
-                prevInst = currInst;
-            }
-        }
-
-
-
-        void EliminateNops()
-        {
-            // remove any nop instructions that are not a branch target,
-            // and only if there are no exception tables.  note that
-            // removing nops that are a branch target, or nops in a method
-            // with exception tables, would require updating the stack map,
-            // branch instructions and exception tables.
-
-            if (Exceptions != null && Exceptions.Count != 0)
-                return;
-            var nops = new List<int>();
-
-            int n = Instructions.Count;
-            for (int i = 0; i < n; i++)
-            {
-                byte op = Instructions[i].Opcode;
-                if (op == 0x00 /* nop */)
-                {
-                    // collect this nop only if it is not a branch target
-                    if (! StackMap.HasBranchFrame(Instructions[i].Label))
-                    {
-                        nops.Add(i);
-                    }
-                }
-                else if ((instOperandType[op] & 0x40) == 0x40) // jump inst
-                {
-                    if (Instructions[i].Data is int)
-                    {
-                        // if jump instruction has an explicit byte offset,
-                        // we can't do nop elimination; see FillJumpTargets
-                        return;
-                    }
-                }
-            }
-
-            for (int i = nops.Count; i-- > 0; )
-                Instructions.RemoveAt(nops[i]);
         }
 
     }

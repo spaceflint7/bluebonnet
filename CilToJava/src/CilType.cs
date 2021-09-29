@@ -135,7 +135,7 @@ namespace SpaceFlint.CilToJava
                 var modifier = (fromType as IModifierType).ModifierType.FullName;
                 if (modifier == "System.Runtime.CompilerServices.IsVolatile")
                     Flags |= VOLATILE;
-                else
+                else if (modifier != "System.Runtime.CompilerServices.IsExternalInit")
                     throw CilMain.Where.Exception($"unknown modifier '{modifier}'");
             }
 

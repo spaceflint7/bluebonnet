@@ -59,7 +59,7 @@ There are some additional demos:
 - Change to the `Demos` directory inside the solution directory.
 - Restore packages using [nuget](https://www.nuget.org/downloads): `nuget restore`
 - Build and run each demo:  `msbuild -p:Configuration=Release -t:RunDemo`
-    - Note that the Android demos require the `ANDROID_HOME` environment directory, and the project is hard-coded to use Android platform version 28, and build-tools 30.0.2
+    - Note that the Android demos require the `ANDROID_HOME` environment directory, and the project is hard-coded to use Android platform version 30, and build-tools 30.0.2
     - Note also that the Android demos build an APK file, but do not install it.
 
 See the [BNA](https://github.com/spaceflint7/bna) and [Unjum](https://github.com/spaceflint7/unjum) repositories for more demos for Android.
